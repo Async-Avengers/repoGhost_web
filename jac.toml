@@ -1,0 +1,13 @@
+[project]
+name = "repoghost"
+version = "0.1.0"
+description = "RepoGhost - desktop-ready AI developer sidecar built with Jac"
+
+[plugins.client]
+enabled = true
+
+[plugins.client.vite]
+enabled = true
+port = 8001
+host = "127.0.0.1"
+npm_packages = ["tailwindcss", "@tailwindcss/vite"]
