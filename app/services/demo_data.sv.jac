@@ -1,10 +1,10 @@
-import from ..models.core { FileMatch, OwnershipGuess, MeetingSummary, DecisionItem, BlockerItem }
-import from ..models.outputs {
+import from app.models.core { FileMatch, OwnershipGuess, MeetingSummary, DecisionItem, BlockerItem }
+import from app.models.outputs {
     RepoSummary, TaskItem, ActionPlan, GeneratedTicket,
     HandoffNoteData, StandupUpdateData, ReviewScopeData, WorkflowResultBundle
 }
-import from ..models.workflow { ExecutionPlanningContext }
-import from ..orchestration.trace { seed_trace }
+import from app.models.workflow { ExecutionPlanningContext }
+import from app.orchestration.trace { seed_trace }
 
 def:pub get_demo_bundle() -> WorkflowResultBundle {
     return WorkflowResultBundle(

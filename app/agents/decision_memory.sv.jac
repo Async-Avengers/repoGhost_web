@@ -1,6 +1,6 @@
-import from ..models.workflow { WorkflowRequest }
-import from ..models.outputs { WorkflowResultBundle }
-import from ..services.memory_store { remember_session, update_project_memory, get_project_memory }
+import from app.models.workflow { WorkflowRequest }
+import from app.models.outputs { WorkflowResultBundle }
+import from app.services.memory_store { remember_session, update_project_memory, get_project_memory }
 
 def:pub run_decision_memory(request: WorkflowRequest, bundle: WorkflowResultBundle) -> dict {
     remember_session(request, bundle);

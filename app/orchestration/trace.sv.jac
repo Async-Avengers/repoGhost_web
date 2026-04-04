@@ -1,8 +1,8 @@
 import from datetime { datetime }
-import from ..models.workflow { WorkflowTraceStep }
+import from app.models.workflow { WorkflowTraceStep }
 
 def:pub seed_trace() -> list[WorkflowTraceStep] {
-    now = datetime.now().isoformat();
+    now = str(datetime.now());
     return [
         WorkflowTraceStep(stage="stage_1", agent="Repo Mapper Agent", status="done", started_at=now, finished_at=now, detail="Mapped repo structure and entry points."),
         WorkflowTraceStep(stage="stage_1", agent="Meeting Interpreter Agent", status="done", started_at=now, finished_at=now, detail="Extracted tasks, decisions, blockers, and people."),

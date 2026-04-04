@@ -1,6 +1,6 @@
-import from ..models.core { BlockerItem, MeetingSummary, FileMatch }
-import from ..models.workflow { WorkflowRequest }
-import from ..graph.builder { ProjectContextGraph }
+import from app.models.core { BlockerItem, MeetingSummary, FileMatch }
+import from app.models.workflow { WorkflowRequest }
+import from app.models.outputs { ProjectContextGraph }
 
 obj BlockerInsight {
     has title: str = "";

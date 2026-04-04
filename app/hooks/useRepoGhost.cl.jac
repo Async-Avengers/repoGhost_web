@@ -1,8 +1,17 @@
-sv import from ..orchestration.workflow { run_workflow }
-import from ..lib.ui_state { defaultModes, defaultTabs, quickPrompts }
+import from app.models.workflow { PlanningInsight }
+import from app.models.outputs { GraphEdgeView, GraphNodeView, RepoGhostViewState, WorkflowResultBundle }
+sv include app.orchestration.workflow;
+
+def tap_str(value: str) -> str {
+    return value;
+}
+
+async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> WorkflowResultBundle {
+    return await run_workflow(repoPath, meetingText, prompt, mode);
+}
 
 
-def:pub useRepoGhost() -> dict {
+def:pub useRepoGhost() -> RepoGhostViewState {
     has repoPath: str = "c:/workspace/permitted-repo";
     has meetingText: str = "We need to turn meeting context into tickets, blockers, and a handoff. The team wants a visible multi-agent workflow, repo-aware outputs, and a polished demo-ready desktop sidecar.";
     has prompt: str = "Turn this meeting into tickets and show likely files.";
@@ -10,8 +19,7 @@ def:pub useRepoGhost() -> dict {
     has mode: str = "feature_plan";
     has loading: bool = True;
     has error: str = "";
-    has bundle: any = None;
-    has expanded: bool = True;
+    has bundle: WorkflowResultBundle | None = None;
     has activeTab: str = "context";
     has lastRunLabel: str = "Bootstrapping RepoGhost workspace";
     has chatThread: list[dict[str, str]] = [
@@ -28,22 +36,56 @@ def:pub useRepoGhost() -> dict {
     async def loadBundle() -> None {
         loading = True;
         error = "";
+        error = tap_str(error);
         lastRunLabel = "Running " + mode + " workflow";
+        assert len(lastRunLabel) >= 0;
         try {
-            nextBundle = await run_workflow(repoPath, meetingText, prompt, mode);
+            nextBundle: WorkflowResultBundle = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
             bundle = nextBundle;
             lastRunLabel = "Completed " + mode + " workflow";
-            chatThread = chatThread + [{
-                "role": "assistant",
-                "content": nextBundle.action_plan.headline
-            }];
-        } except Exception as e {
-            error = str(e);
+            if lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": nextBundle.action_plan.headline
+                });
+            }
+        } except ValueError as e {
+            error = tap_str(str(e));
             lastRunLabel = "Workflow failed";
-            chatThread = chatThread + [{
-                "role": "assistant",
-                "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
-            }];
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except RuntimeError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except TypeError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except OSError as e {
+            error = str(e);
+            error = tap_str(error);
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
         }
         loading = False;
     }
@@ -53,105 +95,97 @@ def:pub useRepoGhost() -> dict {
     }
 
     async def submit(nextPrompt: str = "") -> None {
-        chosen = nextPrompt or draftPrompt;
+        chosen: str = nextPrompt;
+        if not chosen {
+            chosen = draftPrompt;
+        }
         if not chosen {
             error = "Add a prompt before running the workflow.";
+            error = tap_str(error);
             return;
         }
         prompt = chosen;
+        prompt = tap_str(prompt);
         draftPrompt = chosen;
-        chatThread = chatThread + [{"role": "user", "content": chosen}];
+        draftPrompt = tap_str(draftPrompt);
+        nextMessage: dict[str, str] = {
+            "role": "user",
+            "content": chosen
+        };
+        chatThread.append(nextMessage);
         await loadBundle();
     }
 
-    def setMode(nextMode: str) -> None {
-        mode = nextMode;
-    }
-
-    def setRepoPath(nextPath: str) -> None {
+    def updateRepoPath(nextPath: str) -> None {
         repoPath = nextPath;
+        repoPath = tap_str(repoPath);
     }
 
-    def setMeetingText(nextText: str) -> None {
+    def updateMeetingText(nextText: str) -> None {
         meetingText = nextText;
+        meetingText = tap_str(meetingText);
     }
 
-    def setDraftPrompt(nextPrompt: str) -> None {
+    def updateDraftPrompt(nextPrompt: str) -> None {
         draftPrompt = nextPrompt;
+        draftPrompt = tap_str(draftPrompt);
         if error {
             error = "";
+            error = tap_str(error);
         }
     }
 
-    def setActiveTab(nextTab: str) -> None {
-        activeTab = nextTab;
-    }
-
-    def applyQuickPrompt(nextMode: str, nextPrompt: str) -> None {
-        mode = nextMode;
-        draftPrompt = nextPrompt;
-        error = "";
-    }
-
-    def toggleExpanded() -> None {
-        expanded = not expanded;
-    }
-
-    def dismissError() -> None {
-        error = "";
-    }
-
-    def graphNodes() -> list {
-        if bundle and bundle.context_graph {
+    def graphNodes() -> list[GraphNodeView] {
+        if bundle {
             return bundle.context_graph.nodes;
         }
         return [];
     }
 
-    def graphEdges() -> list {
-        if bundle and bundle.context_graph {
+    def graphEdges() -> list[GraphEdgeView] {
+        if bundle {
             return bundle.context_graph.edges;
         }
         return [];
     }
 
     def graphFocusPaths() -> list[str] {
-        if bundle and bundle.context_graph {
+        if bundle {
             return bundle.context_graph.focus_paths;
         }
         return [];
     }
 
-    def planningResolved() -> list {
-        if bundle and bundle.planning {
+    def planningResolved() -> list[PlanningInsight] {
+        if bundle {
             return bundle.planning.resolved_mappings;
         }
         return [];
     }
 
-    def planningBlockers() -> list {
-        if bundle and bundle.planning {
+    def planningBlockers() -> list[PlanningInsight] {
+        if bundle {
             return bundle.planning.blocker_insights;
         }
         return [];
     }
 
-    def planningImpacts() -> list {
-        if bundle and bundle.planning {
+    def planningImpacts() -> list[PlanningInsight] {
+        if bundle {
             return bundle.planning.impact_insights;
         }
         return [];
     }
 
-    def planningTestGaps() -> list {
-        if bundle and bundle.planning {
+    def planningTestGaps() -> list[PlanningInsight] {
+        if bundle {
             return bundle.planning.test_gap_insights;
         }
         return [];
     }
 
     def actionPlanPhases() -> list[str] {
-        if bundle and bundle.action_plan {
+        if bundle {
             return bundle.action_plan.phases;
         }
         return [];
@@ -159,7 +193,7 @@ def:pub useRepoGhost() -> dict {
 
     def ticketTitles() -> list[str] {
         titles: list[str] = [];
-        if bundle and bundle.tickets {
+        if bundle {
             for item in bundle.tickets {
                 titles.append(item.title);
             }
@@ -168,14 +202,14 @@ def:pub useRepoGhost() -> dict {
     }
 
     def handoffActions() -> list[str] {
-        if bundle and bundle.handoff {
+        if bundle {
             return bundle.handoff.next_actions;
         }
         return [];
     }
 
     def reviewHotspots() -> list[str] {
-        if bundle and bundle.review {
+        if bundle {
             return bundle.review.risk_hotspots;
         }
         return [];
@@ -191,42 +225,33 @@ def:pub useRepoGhost() -> dict {
         return "ready";
     }
 
-    return {
-        "repoPath": repoPath,
-        "meetingText": meetingText,
-        "prompt": prompt,
-        "draftPrompt": draftPrompt,
-        "mode": mode,
-        "loading": loading,
-        "error": error,
-        "bundle": bundle,
-        "expanded": expanded,
-        "activeTab": activeTab,
-        "chatThread": chatThread,
-        "lastRunLabel": lastRunLabel,
-        "statusTone": statusTone(),
-        "modes": defaultModes(),
-        "tabs": defaultTabs(),
-        "quickPrompts": quickPrompts(),
-        "graphNodes": graphNodes(),
-        "graphEdges": graphEdges(),
-        "graphFocusPaths": graphFocusPaths(),
-        "planningResolved": planningResolved(),
-        "planningBlockers": planningBlockers(),
-        "planningImpacts": planningImpacts(),
-        "planningTestGaps": planningTestGaps(),
-        "actionPlanPhases": actionPlanPhases(),
-        "ticketTitles": ticketTitles(),
-        "handoffActions": handoffActions(),
-        "reviewHotspots": reviewHotspots(),
-        "submit": submit,
-        "setMode": setMode,
-        "setRepoPath": setRepoPath,
-        "setMeetingText": setMeetingText,
-        "setDraftPrompt": setDraftPrompt,
-        "setActiveTab": setActiveTab,
-        "applyQuickPrompt": applyQuickPrompt,
-        "toggleExpanded": toggleExpanded,
-        "dismissError": dismissError
-    };
+    return RepoGhostViewState(
+        repoPath=repoPath,
+        meetingText=meetingText,
+        prompt=prompt,
+        draftPrompt=draftPrompt,
+        mode=mode,
+        loading=loading,
+        error=error,
+        bundle=bundle,
+        activeTab=activeTab,
+        chatThread=chatThread,
+        lastRunLabel=lastRunLabel,
+        statusTone=statusTone(),
+        graphNodes=graphNodes(),
+        graphEdges=graphEdges(),
+        graphFocusPaths=graphFocusPaths(),
+        planningResolved=planningResolved(),
+        planningBlockers=planningBlockers(),
+        planningImpacts=planningImpacts(),
+        planningTestGaps=planningTestGaps(),
+        actionPlanPhases=actionPlanPhases(),
+        ticketTitles=ticketTitles(),
+        handoffActions=handoffActions(),
+        reviewHotspots=reviewHotspots(),
+        submit=submit,
+        setRepoPath=updateRepoPath,
+        setMeetingText=updateMeetingText,
+        setDraftPrompt=updateDraftPrompt
+    );
 }

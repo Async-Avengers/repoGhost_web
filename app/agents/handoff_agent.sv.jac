@@ -1,8 +1,9 @@
-import from ..models.workflow { WorkflowRequest, ExecutionPlanningContext }
-import from ..models.outputs { HandoffNoteData, TaskItem }
+import from app.models.core { FileMatch }
+import from app.models.workflow { WorkflowRequest, ExecutionPlanningContext }
+import from app.models.outputs { HandoffNoteData, TaskItem }
 
 
-def:pub generate_handoff(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list) -> HandoffNoteData {
+def:pub generate_handoff(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list[FileMatch]) -> HandoffNoteData {
     touched_areas: list[str] = [];
     for item in planning.resolved_areas[0:5] {
         touched_areas.append(item);
@@ -24,7 +25,7 @@ def:pub generate_handoff(request: WorkflowRequest, planning: ExecutionPlanningCo
         next_actions.append(task.title + ": " + task.summary);
     }
     return HandoffNoteData(
-        summary="RepoGhost prepared a handoff grounded in the repo scan, meeting context, unified graph, and execution planning context.",
+        summary="RepoGhost prepared a " + request.mode + " handoff grounded in the repo scan, meeting context, unified graph, and execution planning context.",
         touched_areas=touched_areas,
         risks=risks,
         next_actions=next_actions

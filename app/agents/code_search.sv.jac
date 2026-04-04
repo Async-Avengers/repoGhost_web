@@ -1,6 +1,7 @@
-import from ..models.core { FileMatch }
-import from ..services.search_index { search_repo }
+import from app.models.core { FileMatch }
+include app.services.search_index;
 
 def:pub run_code_search(repo_path: str, prompt: str, meeting_text: str) -> list[FileMatch] {
-    return search_repo(repo_path, prompt, meeting_text);
+    matches: list[FileMatch] = search_repo(repo_path, prompt, meeting_text);
+    return matches;
 }

@@ -1,5 +1,6 @@
-import from ..models.workflow { WorkflowRequest, ExecutionPlanningContext }
-import from ..models.outputs { ActionPlan, TaskItem }
+import from app.models.core { FileMatch }
+import from app.models.workflow { WorkflowRequest, ExecutionPlanningContext }
+import from app.models.outputs { ActionPlan, TaskItem }
 
 
 def collect_dependencies(planning: ExecutionPlanningContext) -> list[str] {
@@ -13,33 +14,57 @@ def collect_dependencies(planning: ExecutionPlanningContext) -> list[str] {
     return deps;
 }
 
+def plan_headline(request: WorkflowRequest, files: list[FileMatch]) -> str {
+    if request.mode == "review_prep" {
+        return "RepoGhost prepared a reviewer-focused execution plan from repo, meeting, graph, and planning context.";
+    }
+    return "RepoGhost generated a staged execution plan from " + str(len(files)) + " repo-grounded files and the merged planning context.";
+}
 
-def:pub build_action_plan(request: WorkflowRequest, planning: ExecutionPlanningContext, files: list) -> ActionPlan {
-    first_task = "Validate the top resolved files against the current request.";
-    next_task = "Turn the planning context into execution-ready tickets and handoff artifacts.";
-    if len(planning.resolved_areas) > 0 {
-        first_task = "Inspect " + planning.resolved_areas[0] + " and confirm the implementation boundary.";
-    }
+def plan_first_task(request: WorkflowRequest, planning: ExecutionPlanningContext, files: list[FileMatch]) -> str {
     if request.mode == "standup" {
-        first_task = "Summarize completed context-building and reasoning work for the team update.";
-        next_task = "Highlight the next execution slice and any blockers that need owner follow-up.";
-    } elif request.mode == "handoff" {
-        first_task = "Capture the current state of the repo, planning context, and open risks.";
-        next_task = "Package next actions for the incoming developer with likely files and dependencies.";
-    } elif request.mode == "review_prep" {
-        first_task = "Group changed areas and risk hotspots into a reviewer-friendly scope.";
-        next_task = "Generate a checklist grounded in blockers, impacts, and test gaps.";
+        return "Summarize completed context-building and reasoning work for the team update.";
     }
+    if request.mode == "handoff" {
+        return "Capture the current state of the repo, planning context, and open risks.";
+    }
+    if request.mode == "review_prep" {
+        return "Group changed areas and risk hotspots into a reviewer-friendly scope.";
+    }
+    if len(planning.resolved_areas) > 0 {
+        return "Inspect " + planning.resolved_areas[0] + " and confirm the implementation boundary.";
+    }
+    if len(files) > 0 {
+        return "Inspect " + files[0].path + " and confirm the implementation boundary.";
+    }
+    return "Validate the top resolved files against the current request.";
+}
+
+def plan_next_task(request: WorkflowRequest) -> str {
+    if request.mode == "standup" {
+        return "Highlight the next execution slice and any blockers that need owner follow-up.";
+    }
+    if request.mode == "handoff" {
+        return "Package next actions for the incoming developer with likely files and dependencies.";
+    }
+    if request.mode == "review_prep" {
+        return "Generate a checklist grounded in blockers, impacts, and test gaps.";
+    }
+    return "Turn the planning context into execution-ready tickets and handoff artifacts.";
+}
+
+
+def:pub build_action_plan(request: WorkflowRequest, planning: ExecutionPlanningContext, files: list[FileMatch]) -> ActionPlan {
     return ActionPlan(
-        headline="RepoGhost generated a staged execution plan from repo, meeting, graph, and planning context.",
-        first_task=first_task,
-        next_task=next_task,
+        headline=plan_headline(request, files),
+        first_task=plan_first_task(request, planning, files),
+        next_task=plan_next_task(request),
         phases=["Stage 1 ingest", "Stage 1 merge", "Stage 2 reasoning", "Stage 2 merge", "Stage 3 output generation", "Execution handoff"]
     );
 }
 
 
-def:pub build_action_tasks(request: WorkflowRequest, planning: ExecutionPlanningContext, files: list) -> list[TaskItem] {
+def:pub build_action_tasks(request: WorkflowRequest, planning: ExecutionPlanningContext, files: list[FileMatch]) -> list[TaskItem] {
     likely_files: list[str] = [];
     for item in files[0:5] {
         likely_files.append(item.path);

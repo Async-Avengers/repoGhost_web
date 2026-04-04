@@ -1,6 +1,6 @@
-import from ..models.core { RepoSelection, ChatMessage }
-import from ..models.outputs { WorkflowResultBundle }
-import from ..models.workflow { WorkflowRunState }
+import from app.models.core { RepoSelection, ChatMessage }
+import from app.models.outputs { WorkflowResultBundle }
+import from app.models.workflow { WorkflowRunState }
 
 obj SessionMemory {
     has session_id: str = "default-session";

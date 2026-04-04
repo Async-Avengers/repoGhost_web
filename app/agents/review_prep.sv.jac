@@ -1,8 +1,9 @@
-import from ..models.workflow { WorkflowRequest, ExecutionPlanningContext }
-import from ..models.outputs { ReviewScopeData, TaskItem }
+import from app.models.core { FileMatch }
+import from app.models.workflow { WorkflowRequest, ExecutionPlanningContext }
+import from app.models.outputs { ReviewScopeData, TaskItem }
 
 
-def:pub prepare_review_scope(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list) -> ReviewScopeData {
+def:pub prepare_review_scope(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list[FileMatch]) -> ReviewScopeData {
     changed_areas: list[str] = [];
     for item in planning.resolved_areas[0:5] {
         changed_areas.append(item);
@@ -25,6 +26,9 @@ def:pub prepare_review_scope(request: WorkflowRequest, planning: ExecutionPlanni
         "Check that the riskiest paths have test coverage recommendations.",
         "Verify tickets and handoff notes align with the action plan."
     ];
+    for item in tasks[0:2] {
+        checklist.append("Review task alignment for " + item.title + ".");
+    }
     if request.mode == "review_prep" {
         checklist.append("Focus reviewer attention on the highest-risk hotspots first.");
     }

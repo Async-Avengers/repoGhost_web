@@ -1,4 +1,4 @@
-import from ..models.core { DecisionItem, BlockerItem, FileMatch }
+import from app.models.core { DecisionItem, BlockerItem, FileMatch }
 
 obj ProjectMemory {
     has project_key: str = "";

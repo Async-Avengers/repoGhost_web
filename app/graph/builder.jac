@@ -1,32 +1,9 @@
-import from ..models.core { FileMatch, MeetingSummary, DecisionItem, BlockerItem, OwnershipGuess }
-import from ..models.workflow { WorkflowRequest, WorkflowTraceStep, ExecutionPlanningContext }
-import from ..models.outputs {
+import from app.models.core { FileMatch, MeetingSummary, DecisionItem, BlockerItem, OwnershipGuess }
+import from app.models.workflow { WorkflowRequest, WorkflowTraceStep, ExecutionPlanningContext }
+import from app.models.outputs {
     RepoSummary, TaskItem, GeneratedTicket, HandoffNoteData,
-    StandupUpdateData, ReviewScopeData
-}
-
-obj GraphNodeView {
-    has id: str = "";
-    has kind: str = "";
-    has label: str = "";
-    has detail: str = "";
-    has group: str = "";
-}
-
-obj GraphEdgeView {
-    has source: str = "";
-    has target: str = "";
-    has kind: str = "relates_to";
-    has detail: str = "";
-}
-
-obj ProjectContextGraph {
-    has project_id: str = "project";
-    has run_id: str = "";
-    has nodes: list[GraphNodeView] = [];
-    has edges: list[GraphEdgeView] = [];
-    has focus_paths: list[str] = [];
-    has trace_summary: list[str] = [];
+    StandupUpdateData, ReviewScopeData, GraphNodeView,
+    GraphEdgeView, ProjectContextGraph
 }
 
 obj GraphBuildRefs {

@@ -1,5 +1,5 @@
-import from ..models.core { FileMatch, MeetingSummary }
-import from ..models.workflow { WorkflowRequest }
+import from app.models.core { FileMatch, MeetingSummary }
+import from app.models.workflow { WorkflowRequest }
 
 obj TestGapInsight {
     has area: str = "";
@@ -8,20 +8,24 @@ obj TestGapInsight {
     has risk: str = "medium";
 }
 
+def gap_test_type(path: str) -> str {
+    if path.startswith("app/orchestration") or path.startswith("app/services") {
+        return "integration";
+    }
+    if path.startswith("app/components") or path.startswith("app/hooks") {
+        return "e2e";
+    }
+    return "unit";
+}
+
 def:pub identify_test_gaps(request: WorkflowRequest, meeting: MeetingSummary, files: list[FileMatch]) -> list[TestGapInsight] {
     gaps: list[TestGapInsight] = [];
     for item in files[:6] {
-        test_type = "unit";
-        if item.path.startswith("app/orchestration") or item.path.startswith("app/services") {
-            test_type = "integration";
-        }
-        if item.path.startswith("app/components") or item.path.startswith("app/hooks") {
-            test_type = "e2e";
-        }
+        item_test_type: str = gap_test_type(item.path);
         gaps.append(TestGapInsight(
             area=item.path,
-            recommendation="Add " + test_type + " coverage for the request path touching " + item.path + ".",
-            test_type=test_type,
+            recommendation="Add " + item_test_type + " coverage for the request path touching " + item.path + ".",
+            test_type=item_test_type,
             risk=("high" if item.score > 0.8 else "medium")
         ));
     }

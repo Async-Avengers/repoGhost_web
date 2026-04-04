@@ -1,59 +1,82 @@
-def:pub WorkspaceShell(**props) -> any {
-    bundle = props.bundle;
-    tabs = props.tabs or [];
-    mode = props.mode or "feature_plan";
-    activeTab = props.activeTab or "context";
-    chatThread = props.chatThread or [];
-    repoPath = props.repoPath or "";
-    meetingText = props.meetingText or "";
-    draftPrompt = props.draftPrompt or "";
-    loading = props.loading or False;
-    error = props.error or "";
-    lastRunLabel = props.lastRunLabel or "Ready";
-    graphNodes = props.graphNodes or [];
-    graphEdges = props.graphEdges or [];
-    graphFocusPaths = props.graphFocusPaths or [];
-    planningResolved = props.planningResolved or [];
-    planningBlockers = props.planningBlockers or [];
-    planningImpacts = props.planningImpacts or [];
-    planningTestGaps = props.planningTestGaps or [];
-    reviewHotspots = props.reviewHotspots or [];
-    onTab = props.setActiveTab or None;
-    onRepo = props.setRepoPath or None;
-    onMeeting = props.setMeetingText or None;
-    onDraft = props.setDraftPrompt or None;
-    onSubmit = props.submit or None;
+import from typing { Any }
+import from app.models.core { BlockerItem, DecisionItem, FileMatch }
+import from app.models.workflow { PlanningInsight, WorkflowTraceStep }
+import from app.models.outputs { GeneratedTicket, GraphEdgeView, GraphNodeView, TaskItem, WorkflowResultBundle }
 
-    trace = (bundle.trace if bundle else []);
-    tasks = (bundle.tasks if bundle else []);
-    tickets = (bundle.tickets if bundle else []);
-    blockers = (bundle.blockers if bundle else []);
-    files = (bundle.relevant_files if bundle else []);
-    ownership = (bundle.ownership if bundle else []);
-    decisions = (bundle.decisions if bundle else []);
-
-    def selectTab(nextTab: str) -> None {
-        if onTab {
-            onTab(nextTab);
-        }
+def chat_bubble_class(role: str) -> str {
+    if role == "user" {
+        return "ml-auto max-w-[90%] rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3";
     }
+    return "max-w-[90%] rounded-2xl border border-border bg-panel-soft px-4 py-3";
+}
 
-    def updateRepo(e: any) -> None {
-        if onRepo {
-            onRepo(e.target.value);
-        }
+def workspace_error_panel(error: str) -> JsxElement {
+    if error {
+        return <div className="rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-foreground">{error}</div>;
     }
+    return <div />;
+}
 
-    def updateMeeting(e: any) -> None {
-        if onMeeting {
-            onMeeting(e.target.value);
-        }
+def workspace_button_label(loading: bool) -> str {
+    if loading {
+        return "Running workflow...";
     }
+    return "Run workflow";
+}
 
-    def updatePrompt(e: any) -> None {
-        if onDraft {
-            onDraft(e.target.value);
-        }
+
+def:pub WorkspaceShell(
+    bundle: WorkflowResultBundle | None = None,
+    activeTab: str = "context",
+    chatThread: list[dict[str, str]] = [],
+    repoPath: str = "",
+    meetingText: str = "",
+    draftPrompt: str = "",
+    loading: bool = False,
+    error: str = "",
+    lastRunLabel: str = "Ready",
+    graphNodes: list[GraphNodeView] = [],
+    graphEdges: list[GraphEdgeView] = [],
+    graphFocusPaths: list[str] = [],
+    planningResolved: list[PlanningInsight] = [],
+    planningBlockers: list[PlanningInsight] = [],
+    planningImpacts: list[PlanningInsight] = [],
+    planningTestGaps: list[PlanningInsight] = [],
+    reviewHotspots: list[str] = [],
+    setRepoPath: Any = None,
+    setMeetingText: Any = None,
+    setDraftPrompt: Any = None,
+    submit: Any = None
+) -> JsxElement {
+    onRepo = setRepoPath;
+    onMeeting = setMeetingText;
+    onDraft = setDraftPrompt;
+    onSubmit = submit;
+
+    trace: list[WorkflowTraceStep] = [];
+    tasks: list[TaskItem] = [];
+    tickets: list[GeneratedTicket] = [];
+    blockers: list[BlockerItem] = [];
+    files: list[FileMatch] = [];
+    decisions: list[DecisionItem] = [];
+    repoOverview = "Waiting for workflow bundle.";
+    meetingSummary = "No meeting summary yet.";
+    actionHeadline = "No action plan yet.";
+    handoffSummary = "No handoff summary yet.";
+    reviewSummary = "No review summary yet.";
+
+    if bundle {
+        trace = bundle.trace or [];
+        tasks = bundle.tasks or [];
+        tickets = bundle.tickets or [];
+        blockers = bundle.blockers or [];
+        files = bundle.relevant_files or [];
+        decisions = bundle.decisions or [];
+        repoOverview = bundle.repo_summary.overview or repoOverview;
+        meetingSummary = bundle.meeting_summary.summary or meetingSummary;
+        actionHeadline = bundle.action_plan.headline or actionHeadline;
+        handoffSummary = bundle.handoff.summary or handoffSummary;
+        reviewSummary = bundle.review.summary or reviewSummary;
     }
 
     async def sendPrompt() -> None {
@@ -62,384 +85,290 @@ def:pub WorkspaceShell(**props) -> any {
         }
     }
 
-    return <div className="grid min-h-[720px] grid-cols-12 gap-4 rounded-[2rem] border border-border bg-panel/90 p-4 shadow-[var(--shadow-glow)] backdrop-blur">
-        <aside className="col-span-12 rounded-[1.5rem] border border-border bg-panel-soft p-4 lg:col-span-2">
-            <div className="text-xs uppercase tracking-[0.24em] text-muted">Modes</div>
-            <div className="mt-3 rounded-2xl border border-accent/30 bg-accent/10 px-3 py-2 text-sm font-medium text-foreground">{mode}</div>
-            <div className="mt-6 text-xs uppercase tracking-[0.24em] text-muted">Runs</div>
-            <div className="mt-3 space-y-2">
-                {[
-                    <div key={step.agent} className="rounded-xl border border-border bg-panel px-3 py-2 text-sm text-muted">
-                        <div className="font-medium text-foreground">{step.agent}</div>
-                        <div className="mt-1 text-xs uppercase tracking-[0.18em]">{step.status}</div>
-                    </div>
-                    for step in trace
-                ]}
+    chatCards = [];
+    for item in chatThread {
+        chatCards.append(
+            <div key={item["role"] + "-" + str(len(chatCards))} className={chat_bubble_class(item["role"])}>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">{item["role"]}</div>
+                <div className="mt-2 text-sm leading-6 text-foreground">{item["content"]}</div>
             </div>
-            <div className="mt-6 rounded-2xl border border-border bg-panel p-3">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Desktop notes</div>
-                <div className="mt-2 space-y-2 text-xs leading-5 text-muted">
-                    <div>• Compact widget layout is sized for a floating sidecar window.</div>
-                    <div>• Expanded workspace is ready for a larger desktop shell.</div>
-                    <div>• Local-first inputs keep demo mode usable without auth.</div>
+        );
+    }
+    if len(chatCards) == 0 {
+        chatCards.append(<div key="no-chat" className="rounded-2xl border border-border bg-panel-soft px-4 py-3 text-sm text-muted">No chat messages yet.</div>);
+    }
+
+    fileCards = [];
+    for item in files {
+        if len(fileCards) >= 6 {
+            break;
+        }
+        fileCards.append(
+            <div key={item.path} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.path}</div>
+                <div className="mt-1 text-xs text-muted">{item.rationale}</div>
+            </div>
+        );
+    }
+    if len(fileCards) == 0 {
+        fileCards.append(<div key="no-files" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No relevant files yet.</div>);
+    }
+
+    blockerCards = [];
+    for item in blockers {
+        if len(blockerCards) >= 6 {
+            break;
+        }
+        blockerCards.append(
+            <div key={item.title} className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.title}</div>
+                <div className="mt-1 text-xs text-muted">{item.detail}</div>
+            </div>
+        );
+    }
+    if len(blockerCards) == 0 {
+        blockerCards.append(<div key="no-blockers" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No blockers yet.</div>);
+    }
+
+    taskCards = [];
+    for item in tasks {
+        if len(taskCards) >= 6 {
+            break;
+        }
+        taskCards.append(
+            <div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.title}</div>
+                <div className="mt-1 text-xs text-muted">{item.summary}</div>
+            </div>
+        );
+    }
+    if len(taskCards) == 0 {
+        taskCards.append(<div key="no-tasks" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No tasks yet.</div>);
+    }
+
+    ticketCards = [];
+    for item in tickets {
+        if len(ticketCards) >= 6 {
+            break;
+        }
+        ticketCards.append(
+            <div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.title}</div>
+                <div className="mt-1 text-xs text-muted">{item.summary}</div>
+            </div>
+        );
+    }
+    if len(ticketCards) == 0 {
+        ticketCards.append(<div key="no-tickets" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No tickets yet.</div>);
+    }
+
+    traceCards = [];
+    for item in trace {
+        if len(traceCards) >= 8 {
+            break;
+        }
+        traceCards.append(
+            <div key={item.agent + item.stage} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.agent}</div>
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted">{item.stage + " • " + item.status}</div>
+                <div className="mt-2 text-xs text-muted">{item.detail}</div>
+            </div>
+        );
+    }
+    if len(traceCards) == 0 {
+        traceCards.append(<div key="no-trace" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No workflow trace yet.</div>);
+    }
+
+    graphCards = [];
+    for item in graphNodes {
+        if len(graphCards) >= 8 {
+            break;
+        }
+        graphCards.append(
+            <div key={item.id} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-sm font-medium text-foreground">{item.label}</div>
+                <div className="mt-1 text-xs text-muted">{item.detail}</div>
+            </div>
+        );
+    }
+    if len(graphCards) == 0 {
+        graphCards.append(<div key="no-graph" className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-muted">No graph nodes yet.</div>);
+    }
+
+    focusCards = [];
+    for item in graphFocusPaths {
+        if len(focusCards) >= 6 {
+            break;
+        }
+        focusCards.append(<div key={item} className="rounded-full border border-border bg-panel px-3 py-1 text-xs text-muted">{item}</div>);
+    }
+    if len(focusCards) == 0 {
+        focusCards.append(<div key="no-focus" className="rounded-full border border-border bg-panel px-3 py-1 text-xs text-muted">No focus paths yet</div>);
+    }
+
+    resolvedCards = [];
+    for item in planningResolved {
+        resolvedCards.append(<div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item.title}</div>);
+    }
+    if len(resolvedCards) == 0 {
+        resolvedCards.append(<div key="no-resolved" className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-muted">No resolved areas yet.</div>);
+    }
+
+    impactCards = [];
+    for item in planningImpacts {
+        impactCards.append(<div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item.title}</div>);
+    }
+    if len(impactCards) == 0 {
+        impactCards.append(<div key="no-impacts" className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-muted">No impact hotspots yet.</div>);
+    }
+
+    riskCards = [];
+    for item in planningBlockers {
+        riskCards.append(<div key={item.title} className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-foreground">{item.title}</div>);
+    }
+    for item in planningTestGaps {
+        riskCards.append(<div key={item.title} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground">{item.title}</div>);
+    }
+    if len(riskCards) == 0 {
+        riskCards.append(<div key="no-risks" className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-muted">No planning risks yet.</div>);
+    }
+
+    decisionCards = [];
+    for item in decisions {
+        decisionCards.append(<div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item.title}</div>);
+    }
+    if len(decisionCards) == 0 {
+        decisionCards.append(<div key="no-decisions" className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-muted">No decisions yet.</div>);
+    }
+
+    hotspotCards = [];
+    for item in reviewHotspots {
+        hotspotCards.append(<div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>);
+    }
+    if len(hotspotCards) == 0 {
+        hotspotCards.append(<div key="no-hotspots" className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-muted">No review hotspots yet.</div>);
+    }
+
+    return <section className="rounded-[2rem] border border-border bg-panel/85 p-5 shadow-[var(--shadow-glow)] backdrop-blur">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div>
+                <div className="text-xs uppercase tracking-[0.28em] text-accent-2">Expanded workspace</div>
+                <h2 className="mt-2 text-3xl font-semibold text-foreground">Engineering workspace</h2>
+                <div className="mt-2 text-sm text-muted">{lastRunLabel + " • tab " + activeTab}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3 text-sm text-foreground">{str(len(graphNodes)) + " nodes"}</div>
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3 text-sm text-foreground">{str(len(graphEdges)) + " edges"}</div>
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3 text-sm text-foreground">{str(len(tasks)) + " tasks"}</div>
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3 text-sm text-foreground">{str(len(tickets)) + " tickets"}</div>
+            </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4 lg:col-span-1">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Repo path</div>
+                <input value={repoPath} onChange={lambda e: Any -> None { if onRepo { onRepo(e.target.value); } }} className="mt-2 w-full rounded-2xl border border-border bg-panel px-3 py-3 text-sm text-foreground outline-none focus:border-accent" placeholder="C:/path/to/repo" />
+                <div className="mt-4 text-xs uppercase tracking-[0.18em] text-muted">Meeting notes</div>
+                <textarea value={meetingText} onChange={lambda e: Any -> None { if onMeeting { onMeeting(e.target.value); } }} className="mt-2 min-h-[140px] w-full rounded-2xl border border-border bg-panel px-3 py-3 text-sm text-foreground outline-none focus:border-accent" placeholder="Paste meeting notes or transcript" />
+                <div className="mt-4 text-xs uppercase tracking-[0.18em] text-muted">Prompt</div>
+                <textarea value={draftPrompt} onChange={lambda e: Any -> None { if onDraft { onDraft(e.target.value); } }} className="mt-2 min-h-[120px] w-full rounded-2xl border border-border bg-panel px-3 py-3 text-sm text-foreground outline-none focus:border-accent" placeholder="Turn this meeting into tickets" />
+                <button onClick={sendPrompt} className="mt-3 w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-background transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>{workspace_button_label(loading)}</button>
+            </div>
+
+            <div className="space-y-4 lg:col-span-2">
+                {workspace_error_panel(error)}
+                <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Chat thread</div>
+                    <div className="mt-3 space-y-3">{chatCards}</div>
                 </div>
-            </div>
-            <div className="mt-6 text-xs uppercase tracking-[0.24em] text-muted">Graph stats</div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted">
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(graphNodes))}</div><div>Nodes</div></div>
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(graphEdges))}</div><div>Edges</div></div>
-            </div>
-            <div className="mt-6 text-xs uppercase tracking-[0.24em] text-muted">Planning stats</div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted">
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(planningResolved))}</div><div>Resolved</div></div>
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(planningBlockers))}</div><div>Risks</div></div>
-            </div>
-            <div className="mt-6 text-xs uppercase tracking-[0.24em] text-muted">Output stats</div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted">
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(tasks))}</div><div>Tasks</div></div>
-                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(tickets))}</div><div>Tickets</div></div>
-            </div>
-        </aside>
-
-        <section className="col-span-12 rounded-[1.5rem] border border-border bg-panel-soft p-5 lg:col-span-6">
-            <div className="flex items-center justify-between gap-3">
-                <div>
-                    <div className="text-xs uppercase tracking-[0.24em] text-accent-2">Assistant thread</div>
-                    <h3 className="mt-2 text-2xl font-semibold text-foreground">Chat-first engineering workspace</h3>
-                </div>
-                <div className={"rounded-full border px-3 py-1 text-xs " + ("border-danger/40 bg-danger/10 text-foreground" if error else ("border-warning/40 bg-warning/10 text-foreground" if loading else "border-success/30 bg-success/10 text-foreground"))}>{lastRunLabel}</div>
-            </div>
-
-            {error and (<div className="mt-4 rounded-[1.25rem] border border-danger/40 bg-danger/10 px-4 py-3 text-sm leading-6 text-foreground">
-                RepoGhost surfaced an error for the last run. Adjust the repo path, meeting notes, or prompt and run again.
-            </div>)}
-
-            <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                    <div className="space-y-3">
-                        {[
-                            <div key={str(index)} className={"max-w-[90%] rounded-2xl border px-4 py-3 " + ("ml-auto border-accent/30 bg-accent/10" if item["role"] == "user" else "border-border bg-panel-soft")}>
-                                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">{item["role"]}</div>
-                                <div className="mt-2 text-sm leading-6 text-foreground">{item["content"]}</div>
-                            </div>
-                            for (index, item) in enumerate(chatThread)
-                        ]}
-                    </div>
-                    <div className="mt-4 rounded-[1.5rem] border border-border bg-panel-soft p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Compose request</div>
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-muted">{("Running" if loading else "Ready")}</div>
-                        </div>
-                        <textarea value={draftPrompt} onChange={updatePrompt} className="mt-3 min-h-[120px] w-full rounded-2xl border border-border bg-panel px-3 py-3 text-sm text-foreground outline-none transition placeholder:text-muted focus:border-accent" placeholder="Ask RepoGhost to turn context into tickets, blockers, handoff notes, or review prep..." />
-                        <button onClick={sendPrompt} className="mt-3 rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-background transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>{"Running workflow..." if loading else "Run workflow"}</button>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Repo input</div>
-                        <input value={repoPath} onChange={updateRepo} className="mt-3 w-full rounded-2xl border border-border bg-panel-soft px-3 py-3 text-sm text-foreground outline-none transition focus:border-accent" />
-                    </div>
-                    <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Meeting input</div>
-                        <textarea value={meetingText} onChange={updateMeeting} className="mt-3 min-h-[180px] w-full rounded-2xl border border-border bg-panel-soft px-3 py-3 text-sm text-foreground outline-none transition focus:border-accent" />
-                    </div>
-                    <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan</div>
-                        <div className="mt-2 text-sm font-medium text-foreground">{bundle.action_plan.headline if bundle else "Waiting for workflow bundle."}</div>
-                        <div className="mt-3 text-xs uppercase tracking-[0.18em] text-muted">First task</div>
-                        <div className="mt-1 text-sm text-foreground">{bundle.action_plan.first_task if bundle else ""}</div>
-                        <div className="mt-3 text-xs uppercase tracking-[0.18em] text-muted">Next task</div>
-                        <div className="mt-1 text-sm text-foreground">{bundle.action_plan.next_task if bundle else ""}</div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Agent timeline</div>
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 3 visible</div>
-                    </div>
-                    <div className="mt-3 space-y-3">
-                        {[
-                            <div key={step.agent + step.stage} className="flex items-start gap-3 rounded-2xl border border-border bg-panel-soft px-4 py-3">
-                                <div className={"mt-1 h-2.5 w-2.5 rounded-full " + ("bg-success" if step.status == "done" else ("bg-warning" if step.status == "running" else "bg-muted"))} />
-                                <div>
-                                    <div className="text-sm font-medium text-foreground">{step.agent}</div>
-                                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted">{step.stage + " • " + step.status}</div>
-                                    <div className="mt-2 text-sm text-muted">{step.detail}</div>
-                                </div>
-                            </div>
-                            for step in trace
-                        ]}
-                    </div>
-                </div>
-                <div className="rounded-[1.5rem] border border-border bg-panel p-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Graph focus paths</div>
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Unified context</div>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                        {[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in graphFocusPaths[0:6]
-                        ]}
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section className="col-span-12 rounded-[1.5rem] border border-border bg-panel-soft p-5 lg:col-span-4">
-            <div className="flex flex-wrap gap-2">
-                {[
-                    <button key={tab["key"]} onClick={lambda : None -> None { selectTab(tab["key"]); }} className={"rounded-full border px-3 py-1 text-xs transition " + ("border-accent bg-accent/15 text-foreground" if tab["key"] == activeTab else "border-border bg-panel text-muted hover:border-border-strong hover:text-foreground")}>
-                        {tab["label"]}
-                    </button>
-                    for tab in tabs
-                ]}
-            </div>
-
-            <div className="mt-5 space-y-4">
-                {activeTab == "context" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
                         <div className="text-xs uppercase tracking-[0.18em] text-muted">Repo overview</div>
-                        <div className="mt-2 text-lg font-semibold text-foreground">{bundle.repo_summary.overview if bundle else "Waiting for workflow bundle."}</div>
-                        <div className="mt-4 flex flex-wrap gap-2">{[<div key={item} className="rounded-full border border-border bg-panel-soft px-3 py-1 text-xs text-muted">{item}</div> for item in (bundle.repo_summary.frameworks if bundle else [])]}</div>
+                        <div className="mt-2 text-sm leading-6 text-foreground">{repoOverview}</div>
                     </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
+                    <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
                         <div className="text-xs uppercase tracking-[0.18em] text-muted">Meeting summary</div>
-                        <p className="mt-2 text-sm leading-6 text-foreground">{bundle.meeting_summary.summary if bundle else ""}</p>
-                        <div className="mt-4 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in (bundle.meeting_summary.action_items if bundle else [])
-                        ]}</div>
+                        <div className="mt-2 text-sm leading-6 text-foreground">{meetingSummary}</div>
                     </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Execution planning context</div>
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 2 merged</div>
-                        </div>
-                        <div className="mt-3 grid gap-3 md:grid-cols-2">
-                            <div className="rounded-xl border border-border bg-panel-soft p-3">
-                                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Resolved areas</div>
-                                <div className="mt-2 space-y-2">{[<div key={item.title} className="text-sm text-foreground">• {item.title}</div> for item in planningResolved[0:4]]}</div>
-                            </div>
-                            <div className="rounded-xl border border-border bg-panel-soft p-3">
-                                <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Impact hotspots</div>
-                                <div className="mt-2 space-y-2">{[<div key={item.title} className="text-sm text-foreground">• {item.title}</div> for item in planningImpacts[0:4]]}</div>
-                            </div>
-                        </div>
+                    <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan</div>
+                        <div className="mt-2 text-sm leading-6 text-foreground">{actionHeadline}</div>
                     </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan phases</div>
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 3 merged</div>
-                        </div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-foreground">{item}</div>
-                            for item in (bundle.action_plan.phases if bundle else [])
-                        ]}</div>
+                    <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Review summary</div>
+                        <div className="mt-2 text-sm leading-6 text-foreground">{reviewSummary}</div>
                     </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Context graph</div>
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">{str(len(graphNodes))} nodes</div>
-                        </div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.id} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="text-sm font-medium text-foreground">{item.label}</div>
-                                    <div className="text-[10px] uppercase tracking-[0.18em] text-muted">{item.kind}</div>
-                                </div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                            </div>
-                            for item in graphNodes[0:8]
-                        ]}</div>
-                    </div>
-                </div>)}
-
-                {activeTab == "files" and (<div className="rounded-2xl border border-border bg-panel p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Relevant files</div>
-                    <div className="mt-3 space-y-3">{[
-                        <div key={item.path} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                            <div className="flex items-center justify-between gap-3"><div className="text-sm font-medium text-foreground">{item.path}</div><div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">{item.kind}</div></div>
-                            <div className="mt-1 text-xs text-muted">{item.rationale}</div>
-                            <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-muted">Score {str(item.score)}</div>
-                        </div>
-                        for item in files
-                    ]}</div>
-                </div>)}
-
-                {activeTab == "tasks" and (<div className="rounded-2xl border border-border bg-panel p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Tasks</div>
-                    <div className="mt-3 space-y-3">{[
-                        <div key={task.title} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                            <div className="text-sm font-medium text-foreground">{task.title}</div>
-                            <div className="mt-1 text-xs text-muted">{task.summary}</div>
-                            <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-accent-2">{task.phase}</div>
-                            <div className="mt-3 flex flex-wrap gap-2">{[<div key={item} className="rounded-full border border-border bg-panel px-2 py-1 text-[10px] text-muted">{item}</div> for item in task.likely_files[0:3]]}</div>
-                        </div>
-                        for task in tasks
-                    ]}</div>
-                </div>)}
-
-                {activeTab == "tickets" and (<div className="rounded-2xl border border-border bg-panel p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Tickets</div>
-                    <div className="mt-3 space-y-3">{[
-                        <div key={ticket.title} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                            <div className="flex items-center justify-between gap-3"><div className="text-sm font-medium text-foreground">{ticket.title}</div><div className="rounded-full border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted">{ticket.priority}</div></div>
-                            <div className="mt-1 text-xs text-muted">{ticket.summary}</div>
-                            <div className="mt-3 space-y-1">{[
-                                <div key={criterion} className="text-xs text-foreground">• {criterion}</div>
-                                for criterion in ticket.acceptance_criteria
-                            ]}</div>
-                            <div className="mt-3 flex flex-wrap gap-2">{[<div key={item} className="rounded-full border border-border bg-panel px-2 py-1 text-[10px] text-muted">{item}</div> for item in ticket.likely_files[0:4]]}</div>
-                        </div>
-                        for ticket in tickets
-                    ]}</div>
-                </div>)}
-
-                {activeTab == "blockers" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Blockers</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.title} className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.title}</div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-danger">{item.severity}</div>
-                            </div>
-                            for item in blockers
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Stage 2 blocker reasoning</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.title + item.category} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.title}</div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-warning">{item.severity + " • " + item.category}</div>
-                            </div>
-                            for item in planningBlockers
-                        ]}</div>
-                    </div>
-                </div>)}
-
-                {activeTab == "handoff" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Handoff</div>
-                        <div className="mt-2 text-sm leading-6 text-foreground">{bundle.handoff.summary if bundle else ""}</div>
-                        <div className="mt-4 text-[10px] uppercase tracking-[0.18em] text-muted">Touched areas</div>
-                        <div className="mt-2 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in (bundle.handoff.touched_areas if bundle else [])
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Next actions</div>
-                        <div className="mt-2 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in (bundle.handoff.next_actions if bundle else [])
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Risks</div>
-                        <div className="mt-2 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in (bundle.handoff.risks if bundle else [])
-                        ]}</div>
-                    </div>
-                </div>)}
-
-                {activeTab == "standup" and (<div className="rounded-2xl border border-border bg-panel p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Standup</div>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                        <div className="rounded-xl border border-border bg-panel-soft p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-muted">Done</div><div className="mt-2 space-y-1">{[<div key={item} className="text-sm text-foreground">• {item}</div> for item in (bundle.standup.done if bundle else [])]}</div></div>
-                        <div className="rounded-xl border border-border bg-panel-soft p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-muted">Next</div><div className="mt-2 space-y-1">{[<div key={item} className="text-sm text-foreground">• {item}</div> for item in (bundle.standup.next if bundle else [])]}</div></div>
-                        <div className="rounded-xl border border-border bg-panel-soft p-3"><div className="text-[10px] uppercase tracking-[0.18em] text-muted">Blockers</div><div className="mt-2 space-y-1">{[<div key={item} className="text-sm text-foreground">• {item}</div> for item in (bundle.standup.blockers if bundle else [])]}</div></div>
-                    </div>
-                </div>)}
-
-                {activeTab == "review" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Review scope</div>
-                        <div className="mt-2 text-sm leading-6 text-foreground">{bundle.review.summary if bundle else ""}</div>
-                        <div className="mt-4 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                            for item in (bundle.review.checklist if bundle else [])
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Risk hotspots</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-3 text-sm text-foreground">{item}</div>
-                            for item in reviewHotspots[0:6]
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Dependency impact reasoning</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.title + item.category} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.title}</div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-accent-2">{item.severity}</div>
-                            </div>
-                            for item in planningImpacts
-                        ]}</div>
-                    </div>
-                </div>)}
-
-                {activeTab == "memory" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Decisions</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.title} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.title}</div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                            </div>
-                            for item in decisions
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Ownership</div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.area} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.area}</div>
-                                <div className="mt-1 text-xs text-muted">{item.owner + " • " + item.rationale}</div>
-                            </div>
-                            for item in ownership
-                        ]}</div>
-                    </div>
-                </div>)}
-
-                {activeTab == "trace" and (<div className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Trace</div>
-                        <div className="mt-3 space-y-3">{[
-                            <div key={step.agent + step.stage} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="flex items-center justify-between gap-3"><div className="text-sm font-medium text-foreground">{step.agent}</div><div className="text-[10px] uppercase tracking-[0.18em] text-muted">{step.stage}</div></div>
-                                <div className="mt-1 text-xs text-muted">{step.detail}</div>
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-accent-2">{step.status}</div>
-                            </div>
-                            for step in trace
-                        ]}</div>
-                    </div>
-                    <div className="rounded-2xl border border-border bg-panel p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Test gap reasoning</div>
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">{str(len(planningTestGaps))} targets</div>
-                        </div>
-                        <div className="mt-3 space-y-2">{[
-                            <div key={item.title + item.category} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
-                                <div className="text-sm font-medium text-foreground">{item.title}</div>
-                                <div className="mt-1 text-xs text-muted">{item.detail}</div>
-                                <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-accent-2">{item.category + " • " + item.severity}</div>
-                            </div>
-                            for item in planningTestGaps
-                        ]}</div>
-                    </div>
-                </div>)}
+                </div>
             </div>
-        </section>
-    </div>;
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Relevant files</div>
+                <div className="mt-3 space-y-2">{fileCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Tasks</div>
+                <div className="mt-3 space-y-2">{taskCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Tickets</div>
+                <div className="mt-3 space-y-2">{ticketCards}</div>
+            </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Blockers</div>
+                <div className="mt-3 space-y-2">{blockerCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Planning resolved</div>
+                <div className="mt-3 space-y-2">{resolvedCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Impact hotspots</div>
+                <div className="mt-3 space-y-2">{impactCards}</div>
+            </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Planning risks</div>
+                <div className="mt-3 space-y-2">{riskCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Decisions</div>
+                <div className="mt-3 space-y-2">{decisionCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Review hotspots</div>
+                <div className="mt-3 space-y-2">{hotspotCards}</div>
+            </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4 xl:col-span-2">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Workflow trace</div>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">{traceCards}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Graph focus</div>
+                <div className="mt-3 flex flex-wrap gap-2">{focusCards}</div>
+                <div className="mt-4 text-xs uppercase tracking-[0.18em] text-muted">Graph nodes</div>
+                <div className="mt-3 space-y-2">{graphCards}</div>
+            </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Handoff</div>
+                <div className="mt-2 text-sm leading-6 text-foreground">{handoffSummary}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="text-xs uppercase tracking-[0.18em] text-muted">Active tab</div>
+                <div className="mt-2 text-sm leading-6 text-foreground">{activeTab}</div>
+            </div>
+        </div>
+    </section>;
 }

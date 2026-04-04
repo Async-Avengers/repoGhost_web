@@ -1,24 +1,276 @@
-import from .WidgetShell { WidgetShell }
-import from .WorkspaceShell { WorkspaceShell }
+import from app.models.workflow { PlanningInsight }
+import from app.models.outputs { GraphEdgeView, GraphNodeView, WorkflowResultBundle }
+sv include app.orchestration.workflow;
+import from app.components.WidgetShell { WidgetShell }
+import from app.components.WorkspaceShell { WorkspaceShell }
 
+def tap_str(value: str) -> str {
+    return value;
+}
 
-def:pub AppShell() -> any {
-    state = useRepoGhost();
-    bundle = state["bundle"];
-    graphNodes = state["graphNodes"];
-    graphEdges = state["graphEdges"];
-    planningResolved = state["planningResolved"];
-    planningBlockers = state["planningBlockers"];
-    planningImpacts = state["planningImpacts"];
-    planningTestGaps = state["planningTestGaps"];
-    actionPlanPhases = state["actionPlanPhases"];
-    ticketTitles = state["ticketTitles"];
-    handoffActions = state["handoffActions"];
-    reviewHotspots = state["reviewHotspots"];
-    statusTone = state["statusTone"];
-    error = state["error"];
-    loading = state["loading"];
-    lastRunLabel = state["lastRunLabel"];
+async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> WorkflowResultBundle {
+    return await run_workflow(repoPath, meetingText, prompt, mode);
+}
+
+def action_plan_text(bundle: WorkflowResultBundle | None) -> str {
+    if bundle and bundle.action_plan.first_task {
+        return bundle.action_plan.first_task;
+    }
+    return "Waiting for workflow bundle.";
+}
+
+def first_list_item(values: list[str], fallback: str) -> str {
+    if len(values) > 0 {
+        return values[0];
+    }
+    return fallback;
+}
+
+def status_card_class(loading: bool, status_tone: str) -> str {
+    if status_tone == "error" {
+        return "rounded-2xl border px-4 py-3 border-danger/40 bg-danger/10";
+    }
+    if loading {
+        return "rounded-2xl border px-4 py-3 border-warning/40 bg-warning/10";
+    }
+    return "rounded-2xl border px-4 py-3 border-success/30 bg-success/10";
+}
+
+def workflow_error_panel(error: str) -> JsxElement {
+    if error {
+        return <div className="mt-4 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-foreground">
+            <div className="text-[10px] uppercase tracking-[0.18em] text-danger">Workflow error</div>
+            <div className="mt-2 leading-6">{error}</div>
+        </div>;
+    }
+    return <div />;
+}
+
+def:pub AppShell() -> JsxElement {
+    has repoPath: str = "c:/workspace/permitted-repo";
+    has meetingText: str = "We need to turn meeting context into tickets, blockers, and a handoff. The team wants a visible multi-agent workflow, repo-aware outputs, and a polished demo-ready desktop sidecar.";
+    has prompt: str = "Turn this meeting into tickets and show likely files.";
+    has draftPrompt: str = prompt;
+    has mode: str = "feature_plan";
+    has loading: bool = True;
+    has error: str = "";
+    has bundle: WorkflowResultBundle | None = None;
+    has activeTab: str = "context";
+    has lastRunLabel: str = "Bootstrapping RepoGhost workspace";
+    has chatThread: list[dict[str, str]] = [
+        {
+            "role": "assistant",
+            "content": "RepoGhost is ready. Point me at a permitted repo, paste meeting context, and I will turn it into actionable engineering output."
+        },
+        {
+            "role": "user",
+            "content": prompt
+        }
+    ];
+
+    async def loadBundle() -> None {
+        loading = True;
+        error = "";
+        error = tap_str(error);
+        lastRunLabel = "Running " + mode + " workflow";
+        assert len(lastRunLabel) >= 0;
+        try {
+            nextBundle: WorkflowResultBundle = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
+            bundle = nextBundle;
+            lastRunLabel = "Completed " + mode + " workflow";
+            if lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": nextBundle.action_plan.headline
+                });
+            }
+        } except ValueError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except RuntimeError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except TypeError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        } except OSError as e {
+            error = tap_str(str(e));
+            lastRunLabel = "Workflow failed";
+            if error and lastRunLabel {
+                chatThread.append({
+                    "role": "assistant",
+                    "content": "RepoGhost hit an error while processing this run. Review the error banner and try again."
+                });
+            }
+        }
+        loading = False;
+    }
+
+    async can with entry {
+        await loadBundle();
+    }
+
+    async def submit(nextPrompt: str = "") -> None {
+        chosen: str = nextPrompt;
+        if not chosen {
+            chosen = draftPrompt;
+        }
+        if not chosen {
+            error = "Add a prompt before running the workflow.";
+            error = tap_str(error);
+            return;
+        }
+        prompt = chosen;
+        prompt = tap_str(prompt);
+        draftPrompt = chosen;
+        draftPrompt = tap_str(draftPrompt);
+        nextMessage: dict[str, str] = {
+            "role": "user",
+            "content": chosen
+        };
+        chatThread.append(nextMessage);
+        await loadBundle();
+    }
+
+    def updateRepoPath(nextPath: str) -> None {
+        repoPath = nextPath;
+        repoPath = tap_str(repoPath);
+    }
+
+    def updateMeetingText(nextText: str) -> None {
+        meetingText = nextText;
+        meetingText = tap_str(meetingText);
+    }
+
+    def updateDraftPrompt(nextPrompt: str) -> None {
+        draftPrompt = nextPrompt;
+        draftPrompt = tap_str(draftPrompt);
+        if error {
+            error = "";
+            error = tap_str(error);
+        }
+    }
+
+    def graph_nodes() -> list[GraphNodeView] {
+        if bundle {
+            return bundle.context_graph.nodes;
+        }
+        return [];
+    }
+
+    def graph_edges() -> list[GraphEdgeView] {
+        if bundle {
+            return bundle.context_graph.edges;
+        }
+        return [];
+    }
+
+    def graph_focus_paths() -> list[str] {
+        if bundle {
+            return bundle.context_graph.focus_paths;
+        }
+        return [];
+    }
+
+    def planning_resolved() -> list[PlanningInsight] {
+        if bundle {
+            return bundle.planning.resolved_mappings;
+        }
+        return [];
+    }
+
+    def planning_blockers() -> list[PlanningInsight] {
+        if bundle {
+            return bundle.planning.blocker_insights;
+        }
+        return [];
+    }
+
+    def planning_impacts() -> list[PlanningInsight] {
+        if bundle {
+            return bundle.planning.impact_insights;
+        }
+        return [];
+    }
+
+    def planning_test_gaps() -> list[PlanningInsight] {
+        if bundle {
+            return bundle.planning.test_gap_insights;
+        }
+        return [];
+    }
+
+    def action_plan_phases() -> list[str] {
+        if bundle {
+            return bundle.action_plan.phases;
+        }
+        return [];
+    }
+
+    def ticket_titles() -> list[str] {
+        titles: list[str] = [];
+        if bundle {
+            for item in bundle.tickets {
+                titles.append(item.title);
+            }
+        }
+        return titles;
+    }
+
+    def handoff_actions() -> list[str] {
+        if bundle {
+            return bundle.handoff.next_actions;
+        }
+        return [];
+    }
+
+    def review_hotspots() -> list[str] {
+        if bundle {
+            return bundle.review.risk_hotspots;
+        }
+        return [];
+    }
+
+    def status_tone() -> str {
+        if error {
+            return "error";
+        }
+        if loading {
+            return "running";
+        }
+        return "ready";
+    }
+
+    graphNodes: list[GraphNodeView] = graph_nodes();
+    graphEdges: list[GraphEdgeView] = graph_edges();
+    graphFocusPaths: list[str] = graph_focus_paths();
+    planningResolved: list[PlanningInsight] = planning_resolved();
+    planningBlockers: list[PlanningInsight] = planning_blockers();
+    planningImpacts: list[PlanningInsight] = planning_impacts();
+    planningTestGaps: list[PlanningInsight] = planning_test_gaps();
+    actionPlanPhases: list[str] = action_plan_phases();
+    ticketTitles: list[str] = ticket_titles();
+    handoffActions: list[str] = handoff_actions();
+    reviewHotspots: list[str] = review_hotspots();
+    statusTone: str = status_tone();
 
     return <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-6 px-4 py-6 lg:px-6">
         <header className="rounded-[2rem] border border-border bg-panel/85 p-5 shadow-[var(--shadow-glow)] backdrop-blur">
@@ -33,7 +285,7 @@ def:pub AppShell() -> any {
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                         <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Mode</div>
-                        <div className="mt-2 text-sm font-medium text-foreground">{state["mode"]}</div>
+                        <div className="mt-2 text-sm font-medium text-foreground">{mode}</div>
                     </div>
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                         <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Graph</div>
@@ -56,74 +308,62 @@ def:pub AppShell() -> any {
             <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_220px]">
                 <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                     <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Action plan</div>
-                    <div className="mt-2 text-sm font-medium text-foreground">{bundle.action_plan.first_task if bundle else "Waiting for workflow bundle."}</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{action_plan_text(bundle)}</div>
                 </div>
                 <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                     <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Handoff</div>
-                    <div className="mt-2 text-sm font-medium text-foreground">{handoffActions[0] if len(handoffActions) > 0 else "No handoff actions yet."}</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{first_list_item(handoffActions, "No handoff actions yet.")}</div>
                 </div>
                 <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                     <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Review hotspot</div>
-                    <div className="mt-2 text-sm font-medium text-foreground">{reviewHotspots[0] if len(reviewHotspots) > 0 else "No review hotspots yet."}</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{first_list_item(reviewHotspots, "No review hotspots yet.")}</div>
                 </div>
-                <div className={"rounded-2xl border px-4 py-3 " + ("border-danger/40 bg-danger/10" if statusTone == "error" else ("border-warning/40 bg-warning/10" if loading else "border-success/30 bg-success/10"))}>
+                <div className={status_card_class(loading, statusTone)}>
                     <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Run status</div>
                     <div className="mt-2 text-sm font-medium text-foreground">{lastRunLabel}</div>
                 </div>
             </div>
-            {error and (<div className="mt-4 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-foreground">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-danger">Workflow error</div>
-                <div className="mt-2 leading-6">{error}</div>
-            </div>)}
+            {workflow_error_panel(error)}
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
             <WidgetShell
                 bundle={bundle}
-                mode={state["mode"]}
-                modes={state["modes"]}
-                quickPrompts={state["quickPrompts"]}
-                draftPrompt={state["draftPrompt"]}
+                mode={mode}
+                draftPrompt={draftPrompt}
                 loading={loading}
                 error={error}
                 lastRunLabel={lastRunLabel}
                 graphNodes={graphNodes}
-                graphEdges={graphEdges}
-                graphFocusPaths={state["graphFocusPaths"]}
+                graphFocusPaths={graphFocusPaths}
                 actionPlanPhases={actionPlanPhases}
                 ticketTitles={ticketTitles}
                 handoffActions={handoffActions}
-                setMode={state["setMode"]}
-                setDraftPrompt={state["setDraftPrompt"]}
-                applyQuickPrompt={state["applyQuickPrompt"]}
-                submit={state["submit"]}
-                toggleExpanded={state["toggleExpanded"]}
+                setDraftPrompt={updateDraftPrompt}
+                submit={submit}
             />
             <WorkspaceShell
                 bundle={bundle}
-                tabs={state["tabs"]}
-                mode={state["mode"]}
-                activeTab={state["activeTab"]}
-                chatThread={state["chatThread"]}
-                repoPath={state["repoPath"]}
-                meetingText={state["meetingText"]}
-                draftPrompt={state["draftPrompt"]}
+                activeTab={activeTab}
+                chatThread={chatThread}
+                repoPath={repoPath}
+                meetingText={meetingText}
+                draftPrompt={draftPrompt}
                 loading={loading}
                 error={error}
                 lastRunLabel={lastRunLabel}
                 graphNodes={graphNodes}
                 graphEdges={graphEdges}
-                graphFocusPaths={state["graphFocusPaths"]}
+                graphFocusPaths={graphFocusPaths}
                 planningResolved={planningResolved}
                 planningBlockers={planningBlockers}
                 planningImpacts={planningImpacts}
                 planningTestGaps={planningTestGaps}
                 reviewHotspots={reviewHotspots}
-                setActiveTab={state["setActiveTab"]}
-                setRepoPath={state["setRepoPath"]}
-                setMeetingText={state["setMeetingText"]}
-                setDraftPrompt={state["setDraftPrompt"]}
-                submit={state["submit"]}
+                setRepoPath={updateRepoPath}
+                setMeetingText={updateMeetingText}
+                setDraftPrompt={updateDraftPrompt}
+                submit={submit}
             />
         </div>
     </div>;

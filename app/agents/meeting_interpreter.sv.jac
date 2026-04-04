@@ -1,5 +1,5 @@
-import from ..models.core { MeetingSummary }
-import from ..services.meeting_parse { parse_meeting }
+import from app.models.core { MeetingSummary }
+include app.services.meeting_parse;
 
 def:pub run_meeting_interpreter(meeting_text: str) -> MeetingSummary {
     return parse_meeting(meeting_text);

@@ -1,14 +1,28 @@
-import from ..models.core { MeetingSummary, DecisionItem, BlockerItem }
+import from app.models.core { MeetingSummary, DecisionItem, BlockerItem }
 
 def collect_lines(text: str) -> list[str] {
     return [line.strip() for line in text.split("\n") if line.strip()];
+}
+
+def replace_token(text: str, token: str, value: str) -> str {
+    return text.replace(token, value);
+}
+
+def split_spaces(text: str) -> list[str] {
+    return text.split(" ");
+}
+
+def normalize_words(text: str) -> list[str] {
+    normalized_text: str = replace_token(text, ",", " ");
+    normalized_text = replace_token(normalized_text, ".", " ");
+    return split_spaces(normalized_text);
 }
 
 def:pub parse_meeting(meeting_text: str) -> MeetingSummary {
     if not meeting_text {
         return MeetingSummary(summary="No meeting context provided.");
     }
-    lines = collect_lines(meeting_text);
+    lines: list[str] = collect_lines(meeting_text);
     action_items: list[str] = [];
     decisions: list[DecisionItem] = [];
     blockers: list[BlockerItem] = [];
@@ -37,7 +51,7 @@ def:pub parse_meeting(meeting_text: str) -> MeetingSummary {
             systems.append(line);
         }
     }
-    words = meeting_text.replace(",", " ").replace(".", " ").split();
+    words: list[str] = normalize_words(meeting_text);
     for word in words {
         if len(word) > 1 and word[0].isupper() and word not in people and word.lower() not in ["we", "the", "repo", "workflow"] {
             people.append(word);

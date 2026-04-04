@@ -1,25 +1,93 @@
-import from ..models.workflow { WorkflowRequest, WorkflowTraceStep, ExecutionPlanningContext, PlanningInsight }
-import from ..models.core { DecisionItem, BlockerItem, OwnershipGuess }
-import from ..models.outputs {
-    ActionPlan, GeneratedTicket, HandoffNoteData, ReviewScopeData,
-    StandupUpdateData, TaskItem, WorkflowResultBundle
+import from os { path }
+import from app.models.workflow { WorkflowRequest, WorkflowTraceStep, ExecutionPlanningContext, PlanningInsight }
+import from app.models.core { DecisionItem, BlockerItem, FileMatch, MeetingSummary, OwnershipGuess }
+import from app.models.outputs {
+    ActionPlan, GeneratedTicket, HandoffNoteData, RepoSummary, ReviewScopeData,
+    ProjectContextGraph, StandupUpdateData, TaskItem, WorkflowResultBundle
 }
-import from ..services.demo_data { get_demo_bundle }
-import from ..services.repo_ingest { summarize_repo }
-import from ..services.search_index { search_repo }
-import from ..services.meeting_parse { parse_meeting }
-import from ..services.docs_sync { sync_docs }
-import from ..services.memory_store { remember_session, update_project_memory, get_project_memory }
-import from ..graph.builder { build_stage_one_graph }
-import from ..agents.context_resolver { resolve_context }
-import from ..agents.blocker_detector { detect_blockers }
-import from ..agents.dependency_impact { analyze_dependency_impact }
-import from ..agents.test_gap { identify_test_gaps }
-import from ..agents.action_planner { build_action_plan, build_action_tasks }
-import from ..agents.ticket_writer { write_tickets }
-import from ..agents.standup_agent { generate_standup }
-import from ..agents.handoff_agent { generate_handoff }
-import from ..agents.review_prep { prepare_review_scope }
+include app.services.demo_data;
+import from app.services.memory_store { remember_session, update_project_memory, get_project_memory }
+import from app.graph.builder { build_stage_one_graph }
+include app.agents.repo_mapper;
+include app.agents.meeting_interpreter;
+include app.agents.code_search;
+import from app.agents.context_resolver { resolve_context }
+import from app.agents.blocker_detector { detect_blockers }
+import from app.agents.dependency_impact { analyze_dependency_impact }
+import from app.agents.test_gap { identify_test_gaps }
+include app.agents.action_planner;
+include app.agents.ticket_writer;
+include app.agents.standup_agent;
+include app.agents.handoff_agent;
+include app.agents.review_prep;
+
+obj WorkflowDocsContext {
+    has files: list[FileMatch] = [];
+    has decisions: list[DecisionItem] = [];
+}
+
+def read_workflow_doc_text(file_path: str) -> str {
+    try {
+        with open(file_path, "r", encoding="utf-8") as handle {
+            return handle.read();
+        }
+    } except OSError {
+        return "";
+    } except UnicodeError {
+        return "";
+    }
+}
+
+def workflow_doc_lines(text: str) -> list[str] {
+    return text.split("\n");
+}
+
+def workflow_trim_text(text: str) -> str {
+    return text.strip();
+}
+
+def collect_workflow_docs(repo_path: str) -> WorkflowDocsContext {
+    docs: list[FileMatch] = [];
+    decisions: list[DecisionItem] = [];
+    if not repo_path {
+        return WorkflowDocsContext(files=docs, decisions=decisions);
+    }
+    candidates: list[str] = ["README.md", "readme.md", "docs/README.md", "SPEC.md", "docs/spec.md"];
+    for rel_path in candidates {
+        full_path = path.join(repo_path, rel_path.replace("/", path.sep));
+        if not path.exists(full_path) {
+            continue;
+        }
+        docs.append(
+            FileMatch(
+                path=rel_path,
+                score=0.76,
+                rationale="Documentation file pulled into project context.",
+                kind="doc"
+            )
+        );
+        content: str = read_workflow_doc_text(full_path);
+        if not content {
+            continue;
+        }
+        content_lines: list[str] = workflow_doc_lines(content);
+        for line in content_lines {
+            stripped: str = workflow_trim_text(line);
+            if stripped {
+                decisions.append(
+                    DecisionItem(
+                        title="Doc summary",
+                        detail=stripped,
+                        confidence=0.61,
+                        source=rel_path
+                    )
+                );
+                break;
+            }
+        }
+    }
+    return WorkflowDocsContext(files=docs, decisions=decisions);
+}
 
 
 def build_trace(repo_summary_name: str, meeting_summary_text: str, file_count: int) -> list[WorkflowTraceStep] {
@@ -45,7 +113,7 @@ def build_trace(repo_summary_name: str, meeting_summary_text: str, file_count: i
 }
 
 
-def build_ownership(repo_summary_name: str, files: list) -> list[OwnershipGuess] {
+def build_ownership(repo_summary_name: str, files: list[FileMatch]) -> list[OwnershipGuess] {
     ownership: list[OwnershipGuess] = [];
     if len(files) > 0 {
         ownership.append(OwnershipGuess(area="repo", owner="Core Maintainers", confidence=0.58, rationale="Ownership inferred from top-level structure in " + repo_summary_name + "."));
@@ -65,7 +133,7 @@ def to_planning_insight(title: str, detail: str, severity: str, category: str) -
 }
 
 
-def build_planning(request: WorkflowRequest, files: list, blockers: list, graph: any, meeting_summary: any) -> ExecutionPlanningContext {
+def build_planning(request: WorkflowRequest, files: list[FileMatch], blockers: list[BlockerItem], graph: ProjectContextGraph, meeting_summary: MeetingSummary) -> ExecutionPlanningContext {
     resolved_areas: list[str] = [];
     impacts: list[str] = [];
     test_gaps: list[str] = [];
@@ -116,19 +184,19 @@ def build_planning(request: WorkflowRequest, files: list, blockers: list, graph:
 
 
 def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str = "feature_plan") -> WorkflowResultBundle {
-    request = WorkflowRequest(repo_path=repo_path, meeting_text=meeting_text, prompt=prompt, mode=mode);
-    bundle = get_demo_bundle();
+    request: WorkflowRequest = WorkflowRequest(repo_path=repo_path, meeting_text=meeting_text, prompt=prompt, mode=mode);
+    bundle: WorkflowResultBundle = get_demo_bundle();
 
-    repo_summary = summarize_repo(request.repo_path);
-    meeting_summary = parse_meeting(request.meeting_text);
-    relevant_files = search_repo(request.repo_path, request.prompt, request.meeting_text);
-    doc_result = sync_docs(request.repo_path);
-    doc_files = doc_result[0];
-    doc_decisions = doc_result[1];
+    repo_summary: RepoSummary = run_repo_mapper(request.repo_path);
+    meeting_summary: MeetingSummary = run_meeting_interpreter(request.meeting_text);
+    relevant_files: list[FileMatch] = run_code_search(request.repo_path, request.prompt, request.meeting_text);
+    docs_context: WorkflowDocsContext = collect_workflow_docs(request.repo_path);
+    doc_files: list[FileMatch] = docs_context.files;
+    doc_decisions: list[DecisionItem] = docs_context.decisions;
 
-    merged_files = relevant_files + doc_files;
-    merged_decisions = meeting_summary.decisions + doc_decisions;
-    merged_blockers = meeting_summary.blockers;
+    merged_files: list[FileMatch] = relevant_files + doc_files;
+    merged_decisions: list[DecisionItem] = meeting_summary.decisions + doc_decisions;
+    merged_blockers: list[BlockerItem] = meeting_summary.blockers;
     if len(merged_blockers) == 0 {
         merged_blockers = bundle.blockers;
     }
@@ -194,8 +262,9 @@ def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str =
     }
 
     remember_session(request, bundle);
-    memory_snapshot = update_project_memory(request.repo_path, bundle);
-    bundle.review.checklist = bundle.review.checklist + ["Memory updated at " + memory_snapshot["updated_at"]];
+    memory_snapshot: dict = update_project_memory(request.repo_path, bundle);
+    updated_at = str(memory_snapshot["updated_at"]);
+    bundle.review.checklist = bundle.review.checklist + ["Memory updated at " + updated_at];
     return bundle;
 }
 

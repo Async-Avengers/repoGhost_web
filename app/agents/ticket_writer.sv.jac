@@ -1,8 +1,9 @@
-import from ..models.workflow { WorkflowRequest, ExecutionPlanningContext }
-import from ..models.outputs { GeneratedTicket, TaskItem }
+import from app.models.core { FileMatch }
+import from app.models.workflow { WorkflowRequest, ExecutionPlanningContext }
+import from app.models.outputs { GeneratedTicket, TaskItem }
 
 
-def:pub write_tickets(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list) -> list[GeneratedTicket] {
+def:pub write_tickets(request: WorkflowRequest, planning: ExecutionPlanningContext, tasks: list[TaskItem], files: list[FileMatch]) -> list[GeneratedTicket] {
     likely_files: list[str] = [];
     for item in files[0:6] {
         likely_files.append(item.path);
