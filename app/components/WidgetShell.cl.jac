@@ -1,6 +1,4 @@
 import from typing { Any }
-import from app.models.core { BlockerItem, FileMatch }
-import from app.models.outputs { GraphNodeView, WorkflowResultBundle }
 
 def widget_status_class(loading: bool, error: str) -> str {
     if error {
@@ -37,13 +35,13 @@ def widget_error_panel(error: str) -> JsxElement {
 
 
 def:pub WidgetShell(
-    bundle: WorkflowResultBundle | None = None,
+    bundle: Any = None,
     mode: str = "feature_plan",
     draftPrompt: str = "",
     loading: bool = False,
     error: str = "",
     lastRunLabel: str = "Ready",
-    graphNodes: list[GraphNodeView] = [],
+    graphNodes: list[Any] = [],
     actionPlanPhases: list[str] = [],
     ticketTitles: list[str] = [],
     handoffActions: list[str] = [],
@@ -54,8 +52,8 @@ def:pub WidgetShell(
     onDraft = setDraftPrompt;
     onSubmit = submit;
 
-    files: list[FileMatch] = [];
-    blockers: list[BlockerItem] = [];
+    files: list[Any] = [];
+    blockers: list[Any] = [];
     nextStep = "Waiting for workflow context.";
     if bundle {
         files = bundle.relevant_files or [];

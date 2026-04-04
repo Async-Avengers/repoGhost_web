@@ -1,17 +1,16 @@
-import from app.models.workflow { PlanningInsight }
-import from app.models.outputs { GraphEdgeView, GraphNodeView, RepoGhostViewState, WorkflowResultBundle }
+import from typing { Any }
 sv include app.orchestration.workflow;
 
 def tap_str(value: str) -> str {
     return value;
 }
 
-async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> WorkflowResultBundle {
+async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> Any {
     return await run_workflow(repoPath, meetingText, prompt, mode);
 }
 
 
-def:pub useRepoGhost() -> RepoGhostViewState {
+def:pub useRepoGhost() -> Any {
     has repoPath: str = "c:/workspace/permitted-repo";
     has meetingText: str = "We need to turn meeting context into tickets, blockers, and a handoff. The team wants a visible multi-agent workflow, repo-aware outputs, and a polished demo-ready desktop sidecar.";
     has prompt: str = "Turn this meeting into tickets and show likely files.";
@@ -19,7 +18,7 @@ def:pub useRepoGhost() -> RepoGhostViewState {
     has mode: str = "feature_plan";
     has loading: bool = True;
     has error: str = "";
-    has bundle: WorkflowResultBundle | None = None;
+    has bundle: Any = None;
     has activeTab: str = "context";
     has lastRunLabel: str = "Bootstrapping RepoGhost workspace";
     has chatThread: list[dict[str, str]] = [
@@ -40,7 +39,7 @@ def:pub useRepoGhost() -> RepoGhostViewState {
         lastRunLabel = "Running " + mode + " workflow";
         assert len(lastRunLabel) >= 0;
         try {
-            nextBundle: WorkflowResultBundle = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
+            nextBundle: Any = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
             bundle = nextBundle;
             lastRunLabel = "Completed " + mode + " workflow";
             if lastRunLabel {
@@ -135,14 +134,14 @@ def:pub useRepoGhost() -> RepoGhostViewState {
         }
     }
 
-    def graphNodes() -> list[GraphNodeView] {
+    def graphNodes() -> list[Any] {
         if bundle {
             return bundle.context_graph.nodes;
         }
         return [];
     }
 
-    def graphEdges() -> list[GraphEdgeView] {
+    def graphEdges() -> list[Any] {
         if bundle {
             return bundle.context_graph.edges;
         }
@@ -156,28 +155,28 @@ def:pub useRepoGhost() -> RepoGhostViewState {
         return [];
     }
 
-    def planningResolved() -> list[PlanningInsight] {
+    def planningResolved() -> list[Any] {
         if bundle {
             return bundle.planning.resolved_mappings;
         }
         return [];
     }
 
-    def planningBlockers() -> list[PlanningInsight] {
+    def planningBlockers() -> list[Any] {
         if bundle {
             return bundle.planning.blocker_insights;
         }
         return [];
     }
 
-    def planningImpacts() -> list[PlanningInsight] {
+    def planningImpacts() -> list[Any] {
         if bundle {
             return bundle.planning.impact_insights;
         }
         return [];
     }
 
-    def planningTestGaps() -> list[PlanningInsight] {
+    def planningTestGaps() -> list[Any] {
         if bundle {
             return bundle.planning.test_gap_insights;
         }
@@ -225,33 +224,33 @@ def:pub useRepoGhost() -> RepoGhostViewState {
         return "ready";
     }
 
-    return RepoGhostViewState(
-        repoPath=repoPath,
-        meetingText=meetingText,
-        prompt=prompt,
-        draftPrompt=draftPrompt,
-        mode=mode,
-        loading=loading,
-        error=error,
-        bundle=bundle,
-        activeTab=activeTab,
-        chatThread=chatThread,
-        lastRunLabel=lastRunLabel,
-        statusTone=statusTone(),
-        graphNodes=graphNodes(),
-        graphEdges=graphEdges(),
-        graphFocusPaths=graphFocusPaths(),
-        planningResolved=planningResolved(),
-        planningBlockers=planningBlockers(),
-        planningImpacts=planningImpacts(),
-        planningTestGaps=planningTestGaps(),
-        actionPlanPhases=actionPlanPhases(),
-        ticketTitles=ticketTitles(),
-        handoffActions=handoffActions(),
-        reviewHotspots=reviewHotspots(),
-        submit=submit,
-        setRepoPath=updateRepoPath,
-        setMeetingText=updateMeetingText,
-        setDraftPrompt=updateDraftPrompt
-    );
+    return {
+        "repoPath": repoPath,
+        "meetingText": meetingText,
+        "prompt": prompt,
+        "draftPrompt": draftPrompt,
+        "mode": mode,
+        "loading": loading,
+        "error": error,
+        "bundle": bundle,
+        "activeTab": activeTab,
+        "chatThread": chatThread,
+        "lastRunLabel": lastRunLabel,
+        "statusTone": statusTone(),
+        "graphNodes": graphNodes(),
+        "graphEdges": graphEdges(),
+        "graphFocusPaths": graphFocusPaths(),
+        "planningResolved": planningResolved(),
+        "planningBlockers": planningBlockers(),
+        "planningImpacts": planningImpacts(),
+        "planningTestGaps": planningTestGaps(),
+        "actionPlanPhases": actionPlanPhases(),
+        "ticketTitles": ticketTitles(),
+        "handoffActions": handoffActions(),
+        "reviewHotspots": reviewHotspots(),
+        "submit": submit,
+        "setRepoPath": updateRepoPath,
+        "setMeetingText": updateMeetingText,
+        "setDraftPrompt": updateDraftPrompt
+    };
 }

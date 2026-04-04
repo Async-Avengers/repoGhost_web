@@ -1,7 +1,4 @@
 import from typing { Any }
-import from app.models.core { BlockerItem, DecisionItem, FileMatch }
-import from app.models.workflow { PlanningInsight, WorkflowTraceStep }
-import from app.models.outputs { GeneratedTicket, GraphEdgeView, GraphNodeView, TaskItem, WorkflowResultBundle }
 
 def chat_bubble_class(role: str) -> str {
     if role == "user" {
@@ -24,9 +21,17 @@ def workspace_button_label(loading: bool) -> str {
     return "Run workflow";
 }
 
+def trace_card_key(item: Any) -> str {
+    return str(item.agent) + str(item.stage);
+}
+
+def trace_card_status(item: Any) -> str {
+    return str(item.stage) + " • " + str(item.status);
+}
+
 
 def:pub WorkspaceShell(
-    bundle: WorkflowResultBundle | None = None,
+    bundle: Any = None,
     activeTab: str = "context",
     chatThread: list[dict[str, str]] = [],
     repoPath: str = "",
@@ -35,13 +40,13 @@ def:pub WorkspaceShell(
     loading: bool = False,
     error: str = "",
     lastRunLabel: str = "Ready",
-    graphNodes: list[GraphNodeView] = [],
-    graphEdges: list[GraphEdgeView] = [],
+    graphNodes: list[Any] = [],
+    graphEdges: list[Any] = [],
     graphFocusPaths: list[str] = [],
-    planningResolved: list[PlanningInsight] = [],
-    planningBlockers: list[PlanningInsight] = [],
-    planningImpacts: list[PlanningInsight] = [],
-    planningTestGaps: list[PlanningInsight] = [],
+    planningResolved: list[Any] = [],
+    planningBlockers: list[Any] = [],
+    planningImpacts: list[Any] = [],
+    planningTestGaps: list[Any] = [],
     reviewHotspots: list[str] = [],
     setRepoPath: Any = None,
     setMeetingText: Any = None,
@@ -53,12 +58,12 @@ def:pub WorkspaceShell(
     onDraft = setDraftPrompt;
     onSubmit = submit;
 
-    trace: list[WorkflowTraceStep] = [];
-    tasks: list[TaskItem] = [];
-    tickets: list[GeneratedTicket] = [];
-    blockers: list[BlockerItem] = [];
-    files: list[FileMatch] = [];
-    decisions: list[DecisionItem] = [];
+    trace: list[Any] = [];
+    tasks: list[Any] = [];
+    tickets: list[Any] = [];
+    blockers: list[Any] = [];
+    files: list[Any] = [];
+    decisions: list[Any] = [];
     repoOverview = "Waiting for workflow bundle.";
     meetingSummary = "No meeting summary yet.";
     actionHeadline = "No action plan yet.";
@@ -168,9 +173,9 @@ def:pub WorkspaceShell(
             break;
         }
         traceCards.append(
-            <div key={item.agent + item.stage} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
+            <div key={trace_card_key(item)} className="rounded-xl border border-border bg-panel-soft px-3 py-3">
                 <div className="text-sm font-medium text-foreground">{item.agent}</div>
-                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted">{item.stage + " • " + item.status}</div>
+                <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted">{trace_card_status(item)}</div>
                 <div className="mt-2 text-xs text-muted">{item.detail}</div>
             </div>
         );

@@ -1,5 +1,4 @@
-import from app.models.workflow { PlanningInsight }
-import from app.models.outputs { GraphEdgeView, GraphNodeView, WorkflowResultBundle }
+import from typing { Any }
 sv include app.orchestration.workflow;
 import from app.components.WidgetShell { WidgetShell }
 import from app.components.WorkspaceShell { WorkspaceShell }
@@ -8,11 +7,11 @@ def tap_str(value: str) -> str {
     return value;
 }
 
-async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> WorkflowResultBundle {
+async def fetchWorkflowBundle(repoPath: str, meetingText: str, prompt: str, mode: str) -> Any {
     return await run_workflow(repoPath, meetingText, prompt, mode);
 }
 
-def action_plan_text(bundle: WorkflowResultBundle | None) -> str {
+def action_plan_text(bundle: Any) -> str {
     if bundle and bundle.action_plan.first_task {
         return bundle.action_plan.first_task;
     }
@@ -54,7 +53,7 @@ def:pub AppShell() -> JsxElement {
     has mode: str = "feature_plan";
     has loading: bool = True;
     has error: str = "";
-    has bundle: WorkflowResultBundle | None = None;
+    has bundle: Any = None;
     has activeTab: str = "context";
     has lastRunLabel: str = "Bootstrapping RepoGhost workspace";
     has chatThread: list[dict[str, str]] = [
@@ -75,7 +74,7 @@ def:pub AppShell() -> JsxElement {
         lastRunLabel = "Running " + mode + " workflow";
         assert len(lastRunLabel) >= 0;
         try {
-            nextBundle: WorkflowResultBundle = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
+            nextBundle: Any = await fetchWorkflowBundle(repoPath, meetingText, prompt, mode);
             bundle = nextBundle;
             lastRunLabel = "Completed " + mode + " workflow";
             if lastRunLabel {
@@ -169,14 +168,14 @@ def:pub AppShell() -> JsxElement {
         }
     }
 
-    def graph_nodes() -> list[GraphNodeView] {
+    def graph_nodes() -> list[Any] {
         if bundle {
             return bundle.context_graph.nodes;
         }
         return [];
     }
 
-    def graph_edges() -> list[GraphEdgeView] {
+    def graph_edges() -> list[Any] {
         if bundle {
             return bundle.context_graph.edges;
         }
@@ -190,28 +189,28 @@ def:pub AppShell() -> JsxElement {
         return [];
     }
 
-    def planning_resolved() -> list[PlanningInsight] {
+    def planning_resolved() -> list[Any] {
         if bundle {
             return bundle.planning.resolved_mappings;
         }
         return [];
     }
 
-    def planning_blockers() -> list[PlanningInsight] {
+    def planning_blockers() -> list[Any] {
         if bundle {
             return bundle.planning.blocker_insights;
         }
         return [];
     }
 
-    def planning_impacts() -> list[PlanningInsight] {
+    def planning_impacts() -> list[Any] {
         if bundle {
             return bundle.planning.impact_insights;
         }
         return [];
     }
 
-    def planning_test_gaps() -> list[PlanningInsight] {
+    def planning_test_gaps() -> list[Any] {
         if bundle {
             return bundle.planning.test_gap_insights;
         }
@@ -259,13 +258,13 @@ def:pub AppShell() -> JsxElement {
         return "ready";
     }
 
-    graphNodes: list[GraphNodeView] = graph_nodes();
-    graphEdges: list[GraphEdgeView] = graph_edges();
+    graphNodes: list[Any] = graph_nodes();
+    graphEdges: list[Any] = graph_edges();
     graphFocusPaths: list[str] = graph_focus_paths();
-    planningResolved: list[PlanningInsight] = planning_resolved();
-    planningBlockers: list[PlanningInsight] = planning_blockers();
-    planningImpacts: list[PlanningInsight] = planning_impacts();
-    planningTestGaps: list[PlanningInsight] = planning_test_gaps();
+    planningResolved: list[Any] = planning_resolved();
+    planningBlockers: list[Any] = planning_blockers();
+    planningImpacts: list[Any] = planning_impacts();
+    planningTestGaps: list[Any] = planning_test_gaps();
     actionPlanPhases: list[str] = action_plan_phases();
     ticketTitles: list[str] = ticket_titles();
     handoffActions: list[str] = handoff_actions();
