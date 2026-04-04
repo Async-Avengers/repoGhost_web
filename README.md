@@ -9,7 +9,8 @@ RepoGhost is a desktop-ready Jac fullstack application that ingests a permitted 
 - Real Stage 1 repo ingestion, search, docs sync, meeting parsing, and memory services
 - Unified project context graph merged from Stage 1 outputs
 - Stage 2 reasoning agents for context resolution, blockers, dependency impact, and test gaps
-- Planning-context-backed UI panels for richer blockers, impact, and test-gap reasoning
+- Stage 3 output agents for action planning, ticket writing, standup generation, handoff notes, and review prep
+- Final structured outputs rendered across the widget and workspace
 
 ## Run
 ```bash
@@ -27,3 +28,4 @@ Open the app at the local Jac dev URL.
 - Repo-aware structured outputs
 - Unified project context graph
 - Execution planning context
+- Action plans, tickets, standups, handoffs, and review scope

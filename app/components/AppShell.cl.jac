@@ -2,6 +2,7 @@ import from ..hooks.useRepoGhost { useRepoGhost }
 import from .WidgetShell { WidgetShell }
 import from .WorkspaceShell { WorkspaceShell }
 
+
 def:pub AppShell() -> any {
     state = useRepoGhost();
     bundle = state["bundle"];
@@ -11,6 +12,10 @@ def:pub AppShell() -> any {
     planningBlockers = state["planningBlockers"];
     planningImpacts = state["planningImpacts"];
     planningTestGaps = state["planningTestGaps"];
+    actionPlanPhases = state["actionPlanPhases"];
+    ticketTitles = state["ticketTitles"];
+    handoffActions = state["handoffActions"];
+    reviewHotspots = state["reviewHotspots"];
 
     return <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-6 px-4 py-6 lg:px-6">
         <header className="rounded-[2rem] border border-border bg-panel/85 p-5 shadow-[var(--shadow-glow)] backdrop-blur">
@@ -19,10 +24,10 @@ def:pub AppShell() -> any {
                     <div className="text-xs uppercase tracking-[0.28em] text-accent-2">Desktop AI developer sidecar</div>
                     <h1 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">RepoGhost</h1>
                     <p className="mt-3 max-w-3xl text-sm leading-6 text-muted">
-                        A graph-native Jac workspace that turns repo context, meeting language, and staged reasoning into actionable engineering output.
+                        A graph-native Jac workspace that turns repo context, meeting language, staged reasoning, and Stage 3 output agents into actionable engineering output.
                     </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
                         <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Mode</div>
                         <div className="mt-2 text-sm font-medium text-foreground">{state["mode"]}</div>
@@ -39,6 +44,24 @@ def:pub AppShell() -> any {
                         <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Risk</div>
                         <div className="mt-2 text-sm font-medium text-foreground">{str(len(planningBlockers)) + " blockers / " + str(len(planningTestGaps)) + " test gaps"}</div>
                     </div>
+                    <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Outputs</div>
+                        <div className="mt-2 text-sm font-medium text-foreground">{str(len(ticketTitles)) + " tickets / " + str(len(actionPlanPhases)) + " phases"}</div>
+                    </div>
+                </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Action plan</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{bundle.action_plan.first_task if bundle else "Waiting for workflow bundle."}</div>
+                </div>
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Handoff</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{handoffActions[0] if len(handoffActions) > 0 else "No handoff actions yet."}</div>
+                </div>
+                <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Review hotspot</div>
+                    <div className="mt-2 text-sm font-medium text-foreground">{reviewHotspots[0] if len(reviewHotspots) > 0 else "No review hotspots yet."}</div>
                 </div>
             </div>
         </header>
@@ -54,6 +77,9 @@ def:pub AppShell() -> any {
                 graphNodes={graphNodes}
                 graphEdges={graphEdges}
                 graphFocusPaths={state["graphFocusPaths"]}
+                actionPlanPhases={actionPlanPhases}
+                ticketTitles={ticketTitles}
+                handoffActions={handoffActions}
                 setMode={state["setMode"]}
                 setDraftPrompt={state["setDraftPrompt"]}
                 applyQuickPrompt={state["applyQuickPrompt"]}
@@ -77,6 +103,7 @@ def:pub AppShell() -> any {
                 planningBlockers={planningBlockers}
                 planningImpacts={planningImpacts}
                 planningTestGaps={planningTestGaps}
+                reviewHotspots={reviewHotspots}
                 setActiveTab={state["setActiveTab"]}
                 setRepoPath={state["setRepoPath"]}
                 setMeetingText={state["setMeetingText"]}

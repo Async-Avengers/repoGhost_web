@@ -15,6 +15,11 @@ import from ..agents.context_resolver { resolve_context }
 import from ..agents.blocker_detector { detect_blockers }
 import from ..agents.dependency_impact { analyze_dependency_impact }
 import from ..agents.test_gap { identify_test_gaps }
+import from ..agents.action_planner { build_action_plan, build_action_tasks }
+import from ..agents.ticket_writer { write_tickets }
+import from ..agents.standup_agent { generate_standup }
+import from ..agents.handoff_agent { generate_handoff }
+import from ..agents.review_prep { prepare_review_scope }
 
 
 def build_trace(repo_summary_name: str, meeting_summary_text: str, file_count: int) -> list[WorkflowTraceStep] {
@@ -30,9 +35,15 @@ def build_trace(repo_summary_name: str, meeting_summary_text: str, file_count: i
         WorkflowTraceStep(stage="stage_2", agent="Dependency Impact Agent", status="done", started_at="", finished_at="", detail="Predicted downstream impact across workflow, graph, and UI surfaces."),
         WorkflowTraceStep(stage="stage_2", agent="Test Gap Agent", status="done", started_at="", finished_at="", detail="Suggested unit, integration, and e2e coverage targets."),
         WorkflowTraceStep(stage="stage_2_merge", agent="Planning Context Merger", status="done", started_at="", finished_at="", detail="Merged Stage 2 reasoning into the execution planning context."),
-        WorkflowTraceStep(stage="stage_3", agent="Ticket Writer Agent", status="queued", started_at="", finished_at="", detail="Stage 3 output agents will generate tickets and handoff artifacts.")
+        WorkflowTraceStep(stage="stage_3", agent="Action Planner Agent", status="done", started_at="", finished_at="", detail="Generated a staged execution order and next-step plan."),
+        WorkflowTraceStep(stage="stage_3", agent="Ticket Writer Agent", status="done", started_at="", finished_at="", detail="Created ticket-ready tasks with acceptance criteria and likely files."),
+        WorkflowTraceStep(stage="stage_3", agent="Standup Agent", status="done", started_at="", finished_at="", detail="Prepared a concise done, next, blockers update."),
+        WorkflowTraceStep(stage="stage_3", agent="Handoff Agent", status="done", started_at="", finished_at="", detail="Prepared next-developer handoff notes with risks and next actions."),
+        WorkflowTraceStep(stage="stage_3", agent="PR Review Prep Agent", status="done", started_at="", finished_at="", detail="Prepared review scope, hotspots, and reviewer checklist."),
+        WorkflowTraceStep(stage="stage_3_merge", agent="Output Bundle Merger", status="done", started_at="", finished_at="", detail="Merged Stage 3 artifacts into the final structured workflow bundle.")
     ];
 }
+
 
 def build_ownership(repo_summary_name: str, files: list) -> list[OwnershipGuess] {
     ownership: list[OwnershipGuess] = [];
@@ -48,9 +59,11 @@ def build_ownership(repo_summary_name: str, files: list) -> list[OwnershipGuess]
     return ownership;
 }
 
+
 def to_planning_insight(title: str, detail: str, severity: str, category: str) -> PlanningInsight {
     return PlanningInsight(title=title, detail=detail, severity=severity, category=category);
 }
+
 
 def build_planning(request: WorkflowRequest, files: list, blockers: list, graph: any, meeting_summary: any) -> ExecutionPlanningContext {
     resolved_areas: list[str] = [];
@@ -101,42 +114,6 @@ def build_planning(request: WorkflowRequest, files: list, blockers: list, graph:
     );
 }
 
-def build_tasks(files: list, planning: ExecutionPlanningContext) -> list[TaskItem] {
-    likely_files: list[str] = [];
-    for item in files[:4] {
-        likely_files.append(item.path);
-    }
-    return [
-        TaskItem(title="Ingest repo structure", summary="Scan the permitted repo and extract high-signal files.", phase="Stage 1", dependencies=["repo path"], likely_files=likely_files),
-        TaskItem(title="Interpret meeting context", summary="Extract actions, blockers, decisions, and systems from meeting text.", phase="Stage 1", dependencies=["meeting text"], likely_files=["app/services/meeting_parse.sv.jac"]),
-        TaskItem(title="Resolve execution context", summary="Map vague request language to concrete files, modules, and graph focus paths.", phase="Stage 2", dependencies=["stage 1 graph"], likely_files=planning.resolved_areas[0:4]),
-        TaskItem(title="Merge unified project context graph", summary="Attach repo, meeting, docs, search, and memory outputs into one graph-backed context.", phase="Stage 1 Merge", dependencies=["stage 1 outputs"], likely_files=["app/graph/builder.jac", "app/orchestration/workflow.sv.jac"]),
-        TaskItem(title="Prepare execution outputs", summary="Turn merged context into tickets, handoff, and standup artifacts.", phase="Stage 3", dependencies=["planning context"], likely_files=["app/orchestration/workflow.sv.jac"])
-    ];
-}
-
-def build_tickets(files: list, blockers: list, mode: str, planning: ExecutionPlanningContext) -> list[GeneratedTicket] {
-    likely_files: list[str] = [];
-    blocker_titles: list[str] = [];
-    for item in files[:5] {
-        likely_files.append(item.path);
-    }
-    for blocker in blockers {
-        blocker_titles.append(blocker.title);
-    }
-    for item in planning.blocker_titles {
-        if item not in blocker_titles {
-            blocker_titles.append(item);
-        }
-    }
-    title = "Implement RepoGhost stage 2 reasoning pipeline";
-    summary = "Wire context resolution, blocker detection, dependency impact, and test-gap reasoning into the execution planning context.";
-    if mode == "bug_fix" {
-        title = "Investigate likely regression path from meeting context";
-        summary = "Use repo search, graph-backed context, and Stage 2 reasoning to isolate impacted files, blockers, and missing tests.";
-    }
-    return [GeneratedTicket(title=title, summary=summary, priority="high", acceptance_criteria=["Context resolver maps request language to concrete files", "Blocker detector surfaces requirement and dependency gaps", "Dependency impact reasoning identifies downstream modules", "Test gap reasoning suggests coverage targets", "Execution planning context merges all Stage 2 outputs"], likely_files=likely_files + planning.resolved_areas[0:3], blockers=blocker_titles, dependencies=["repo access", "meeting context", "stage 1 graph"] )];
-}
 
 def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str = "feature_plan") -> WorkflowResultBundle {
     request = WorkflowRequest(repo_path=repo_path, meeting_text=meeting_text, prompt=prompt, mode=mode);
@@ -179,31 +156,12 @@ def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str =
         bundle.trace
     );
     bundle.planning = build_planning(request, merged_files, merged_blockers, bundle.context_graph, meeting_summary);
-    bundle.tasks = build_tasks(merged_files, bundle.planning);
-    bundle.tickets = build_tickets(merged_files, merged_blockers, request.mode, bundle.planning);
-    bundle.action_plan = ActionPlan(
-        headline="RepoGhost is grounding the request in live repo, meeting, and planning context.",
-        first_task="Review the resolved files and Stage 2 blocker insights.",
-        next_task="Inspect dependency impact and test-gap recommendations before execution.",
-        phases=["Stage 1 ingest", "Stage 1 merge", "Stage 2 reasoning", "Stage 2 merge", "Stage 3 outputs"]
-    );
-    bundle.handoff = HandoffNoteData(
-        summary="Stage 2 reasoning now enriches the graph-backed workflow with resolved context, blockers, impact, and test gaps.",
-        touched_areas=["context resolution", "blocker detection", "dependency impact", "test gap reasoning", "execution planning context"],
-        risks=["Reasoning is currently heuristic-first", "Persistent memory is currently local in-process state"],
-        next_actions=["Use planning insights to drive Stage 3 output agents", "Persist memory to disk", "Add byLLM-backed structured reasoning upgrades"]
-    );
-    bundle.standup = StandupUpdateData(
-        done=["Scanned repo structure", "Parsed meeting context", "Ranked relevant files", "Merged stage 1 outputs into the context graph", "Merged Stage 2 reasoning into execution planning"],
-        next=["Generate tickets and handoff artifacts from planning insights", "Refine UI panels for impact and test gaps"],
-        blockers=bundle.planning.blocker_titles
-    );
-    bundle.review = ReviewScopeData(
-        summary="Review the Stage 2 reasoning agents, planning merge, and UI surfaces for blockers, impact, and test gaps.",
-        changed_areas=["app/agents/context_resolver.sv.jac", "app/agents/blocker_detector.sv.jac", "app/agents/dependency_impact.sv.jac", "app/agents/test_gap.sv.jac", "app/orchestration/workflow.sv.jac"],
-        risk_hotspots=["heuristic context resolution", "blocker duplication", "impact over-reporting", "test-gap prioritization"],
-        checklist=["Stage 2 agents run after Stage 1 merge", "Execution planning context contains merged insights", "UI renders blocker, impact, and test-gap reasoning", "Workflow trace shows Stage 2 merge"]
-    );
+    bundle.action_plan = build_action_plan(request, bundle.planning, merged_files);
+    bundle.tasks = build_action_tasks(request, bundle.planning, merged_files);
+    bundle.tickets = write_tickets(request, bundle.planning, bundle.tasks, merged_files);
+    bundle.standup = generate_standup(request, bundle.planning, bundle.tasks, bundle.trace);
+    bundle.handoff = generate_handoff(request, bundle.planning, bundle.tasks, merged_files);
+    bundle.review = prepare_review_scope(request, bundle.planning, bundle.tasks, merged_files);
     bundle.trace = build_trace(repo_summary.project_name, meeting_summary.summary, len(merged_files));
     bundle.context_graph = build_stage_one_graph(
         request,
@@ -226,11 +184,13 @@ def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str =
         bundle.action_plan.headline = "Current request: " + request.prompt;
     }
     if request.mode == "standup" {
-        bundle.action_plan.headline = "Current request: generate a standup update grounded in repo, meeting, graph, and planning context.";
+        bundle.action_plan.headline = "Current request: generate a standup update grounded in repo, meeting, graph, planning, and Stage 3 output context.";
     } elif request.mode == "handoff" {
-        bundle.action_plan.headline = "Current request: prepare a handoff grounded in repo, meeting, graph, and planning context.";
+        bundle.action_plan.headline = "Current request: prepare a handoff grounded in repo, meeting, graph, planning, and Stage 3 output context.";
     } elif request.mode == "review_prep" {
-        bundle.action_plan.headline = "Current request: prepare review scope from live stage 1 outputs and Stage 2 reasoning.";
+        bundle.action_plan.headline = "Current request: prepare review scope from live stage 1 outputs, Stage 2 reasoning, and Stage 3 review prep artifacts.";
+    } elif request.mode == "meeting_to_tickets" {
+        bundle.action_plan.headline = "Current request: turn meeting context into execution-ready tickets and next actions.";
     }
 
     remember_session(request, bundle);
@@ -238,6 +198,7 @@ def:pub run_workflow(repo_path: str, meeting_text: str, prompt: str, mode: str =
     bundle.review.checklist = bundle.review.checklist + ["Memory updated at " + memory_snapshot["updated_at"]];
     return bundle;
 }
+
 
 def:pub get_memory_snapshot(repo_path: str) -> dict {
     return get_project_memory(repo_path);

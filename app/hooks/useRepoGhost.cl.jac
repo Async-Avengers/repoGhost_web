@@ -1,6 +1,7 @@
 sv import from ..orchestration.workflow { run_workflow }
 import from ..lib.ui_state { defaultModes, defaultTabs, quickPrompts }
 
+
 def:pub useRepoGhost() -> dict {
     has repoPath: str = "c:/workspace/permitted-repo";
     has meetingText: str = "We need to turn meeting context into tickets, blockers, and a handoff. The team wants a visible multi-agent workflow, repo-aware outputs, and a polished demo-ready desktop sidecar.";
@@ -131,6 +132,37 @@ def:pub useRepoGhost() -> dict {
         return [];
     }
 
+    def actionPlanPhases() -> list[str] {
+        if bundle and bundle.action_plan {
+            return bundle.action_plan.phases;
+        }
+        return [];
+    }
+
+    def ticketTitles() -> list[str] {
+        titles: list[str] = [];
+        if bundle and bundle.tickets {
+            for item in bundle.tickets {
+                titles.append(item.title);
+            }
+        }
+        return titles;
+    }
+
+    def handoffActions() -> list[str] {
+        if bundle and bundle.handoff {
+            return bundle.handoff.next_actions;
+        }
+        return [];
+    }
+
+    def reviewHotspots() -> list[str] {
+        if bundle and bundle.review {
+            return bundle.review.risk_hotspots;
+        }
+        return [];
+    }
+
     return {
         "repoPath": repoPath,
         "meetingText": meetingText,
@@ -153,6 +185,10 @@ def:pub useRepoGhost() -> dict {
         "planningBlockers": planningBlockers(),
         "planningImpacts": planningImpacts(),
         "planningTestGaps": planningTestGaps(),
+        "actionPlanPhases": actionPlanPhases(),
+        "ticketTitles": ticketTitles(),
+        "handoffActions": handoffActions(),
+        "reviewHotspots": reviewHotspots(),
         "submit": submit,
         "setMode": setMode,
         "setRepoPath": setRepoPath,

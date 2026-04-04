@@ -1,4 +1,4 @@
-def:pub WidgetShell(props: dict) -> any {
+def:pub WidgetShell(props: dict = {}) -> any {
     bundle = props.bundle;
     mode = props.mode or "feature_plan";
     modes = props.modes or [];
@@ -8,6 +8,9 @@ def:pub WidgetShell(props: dict) -> any {
     graphNodes = props.graphNodes or [];
     graphEdges = props.graphEdges or [];
     graphFocusPaths = props.graphFocusPaths or [];
+    actionPlanPhases = props.actionPlanPhases or [];
+    ticketTitles = props.ticketTitles or [];
+    handoffActions = props.handoffActions or [];
     onMode = props.setMode or None;
     onDraft = props.setDraftPrompt or None;
     onQuick = props.applyQuickPrompt or None;
@@ -55,7 +58,7 @@ def:pub WidgetShell(props: dict) -> any {
                 <div className="text-xs uppercase tracking-[0.28em] text-accent-2">Always-on-top widget</div>
                 <h2 className="mt-2 text-2xl font-semibold text-foreground">RepoGhost</h2>
                 <div className="mt-2 inline-flex rounded-full border border-border bg-panel-soft px-3 py-1 text-xs text-muted">
-                    {("Running staged workflow" if loading else "Planning context ready")}
+                    {("Running staged workflow" if loading else "Stage 3 outputs ready")}
                 </div>
             </div>
             <button onClick={toggleWorkspace} className="rounded-full border border-border bg-panel-soft px-3 py-2 text-xs text-muted transition hover:border-border-strong hover:text-foreground">
@@ -63,7 +66,7 @@ def:pub WidgetShell(props: dict) -> any {
             </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted">
+        <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs text-muted">
             <div className="rounded-2xl border border-border bg-panel-soft px-3 py-3">
                 <div className="text-lg font-semibold text-foreground">{str(len(files))}</div>
                 <div>Files</div>
@@ -71,6 +74,10 @@ def:pub WidgetShell(props: dict) -> any {
             <div className="rounded-2xl border border-border bg-panel-soft px-3 py-3">
                 <div className="text-lg font-semibold text-foreground">{str(len(blockers))}</div>
                 <div>Blockers</div>
+            </div>
+            <div className="rounded-2xl border border-border bg-panel-soft px-3 py-3">
+                <div className="text-lg font-semibold text-foreground">{str(len(ticketTitles))}</div>
+                <div>Tickets</div>
             </div>
             <div className="rounded-2xl border border-border bg-panel-soft px-3 py-3">
                 <div className="text-lg font-semibold text-foreground">{str(len(graphNodes))}</div>
@@ -154,6 +161,32 @@ def:pub WidgetShell(props: dict) -> any {
                     ]}
                 </div>
                 <div className="mt-3 text-[11px] text-muted">{str(len(graphEdges)) + " graph relationships are active in the current context."}</div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan</div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 3</div>
+                </div>
+                <div className="mt-3 space-y-2">
+                    {[
+                        <div key={item} className="rounded-xl border border-border bg-panel px-3 py-2 text-sm text-foreground">{item}</div>
+                        for item in actionPlanPhases[0:4]
+                    ]}
+                </div>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-border bg-panel-soft p-4">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Handoff next actions</div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Ready</div>
+                </div>
+                <div className="mt-3 space-y-2">
+                    {[
+                        <div key={item} className="rounded-xl border border-border bg-panel px-3 py-2 text-sm text-foreground">{item}</div>
+                        for item in handoffActions[0:3]
+                    ]}
+                </div>
             </div>
         </div>
     </div>;

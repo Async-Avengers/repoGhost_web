@@ -1,4 +1,4 @@
-def:pub WorkspaceShell(props: dict) -> any {
+def:pub WorkspaceShell(props: dict = {}) -> any {
     bundle = props.bundle;
     tabs = props.tabs or [];
     mode = props.mode or "feature_plan";
@@ -15,6 +15,7 @@ def:pub WorkspaceShell(props: dict) -> any {
     planningBlockers = props.planningBlockers or [];
     planningImpacts = props.planningImpacts or [];
     planningTestGaps = props.planningTestGaps or [];
+    reviewHotspots = props.reviewHotspots or [];
     onTab = props.setActiveTab or None;
     onRepo = props.setRepoPath or None;
     onMeeting = props.setMeetingText or None;
@@ -83,6 +84,11 @@ def:pub WorkspaceShell(props: dict) -> any {
                 <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(planningResolved))}</div><div>Resolved</div></div>
                 <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(planningBlockers))}</div><div>Risks</div></div>
             </div>
+            <div className="mt-6 text-xs uppercase tracking-[0.24em] text-muted">Output stats</div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-center text-xs text-muted">
+                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(tasks))}</div><div>Tasks</div></div>
+                <div className="rounded-xl border border-border bg-panel px-3 py-3"><div className="text-lg font-semibold text-foreground">{str(len(tickets))}</div><div>Tickets</div></div>
+            </div>
         </aside>
 
         <section className="col-span-12 rounded-[1.5rem] border border-border bg-panel-soft p-5 lg:col-span-6">
@@ -91,7 +97,7 @@ def:pub WorkspaceShell(props: dict) -> any {
                     <div className="text-xs uppercase tracking-[0.24em] text-accent-2">Assistant thread</div>
                     <h3 className="mt-2 text-2xl font-semibold text-foreground">Chat-first engineering workspace</h3>
                 </div>
-                <div className="rounded-full border border-border px-3 py-1 text-xs text-muted">{("Workflow running" if loading else "Planning context ready")}</div>
+                <div className="rounded-full border border-border px-3 py-1 text-xs text-muted">{("Workflow running" if loading else "Final outputs ready")}</div>
             </div>
 
             <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -121,6 +127,14 @@ def:pub WorkspaceShell(props: dict) -> any {
                         <div className="text-xs uppercase tracking-[0.18em] text-muted">Meeting input</div>
                         <textarea value={meetingText} onChange={updateMeeting} className="mt-3 min-h-[180px] w-full rounded-2xl border border-border bg-panel-soft px-3 py-3 text-sm text-foreground outline-none transition focus:border-accent" />
                     </div>
+                    <div className="rounded-[1.5rem] border border-border bg-panel p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan</div>
+                        <div className="mt-2 text-sm font-medium text-foreground">{bundle.action_plan.headline if bundle else "Waiting for workflow bundle."}</div>
+                        <div className="mt-3 text-xs uppercase tracking-[0.18em] text-muted">First task</div>
+                        <div className="mt-1 text-sm text-foreground">{bundle.action_plan.first_task if bundle else ""}</div>
+                        <div className="mt-3 text-xs uppercase tracking-[0.18em] text-muted">Next task</div>
+                        <div className="mt-1 text-sm text-foreground">{bundle.action_plan.next_task if bundle else ""}</div>
+                    </div>
                 </div>
             </div>
 
@@ -128,7 +142,7 @@ def:pub WorkspaceShell(props: dict) -> any {
                 <div className="rounded-[1.5rem] border border-border bg-panel p-4">
                     <div className="flex items-center justify-between gap-3">
                         <div className="text-xs uppercase tracking-[0.18em] text-muted">Agent timeline</div>
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 2 merge visible</div>
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 3 visible</div>
                     </div>
                     <div className="mt-3 space-y-3">
                         {[
@@ -202,6 +216,16 @@ def:pub WorkspaceShell(props: dict) -> any {
                     </div>
                     <div className="rounded-2xl border border-border bg-panel p-4">
                         <div className="flex items-center justify-between gap-3">
+                            <div className="text-xs uppercase tracking-[0.18em] text-muted">Action plan phases</div>
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">Stage 3 merged</div>
+                        </div>
+                        <div className="mt-3 space-y-2">{[
+                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-3 text-sm text-foreground">{item}</div>
+                            for item in (bundle.action_plan.phases if bundle else [])
+                        ]}</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-panel p-4">
+                        <div className="flex items-center justify-between gap-3">
                             <div className="text-xs uppercase tracking-[0.18em] text-muted">Context graph</div>
                             <div className="text-[10px] uppercase tracking-[0.18em] text-accent-2">{str(len(graphNodes))} nodes</div>
                         </div>
@@ -237,6 +261,7 @@ def:pub WorkspaceShell(props: dict) -> any {
                             <div className="text-sm font-medium text-foreground">{task.title}</div>
                             <div className="mt-1 text-xs text-muted">{task.summary}</div>
                             <div className="mt-2 text-[10px] uppercase tracking-[0.18em] text-accent-2">{task.phase}</div>
+                            <div className="mt-3 flex flex-wrap gap-2">{[<div key={item} className="rounded-full border border-border bg-panel px-2 py-1 text-[10px] text-muted">{item}</div> for item in task.likely_files[0:3]]}</div>
                         </div>
                         for task in tasks
                     ]}</div>
@@ -252,6 +277,7 @@ def:pub WorkspaceShell(props: dict) -> any {
                                 <div key={criterion} className="text-xs text-foreground">• {criterion}</div>
                                 for criterion in ticket.acceptance_criteria
                             ]}</div>
+                            <div className="mt-3 flex flex-wrap gap-2">{[<div key={item} className="rounded-full border border-border bg-panel px-2 py-1 text-[10px] text-muted">{item}</div> for item in ticket.likely_files[0:4]]}</div>
                         </div>
                         for ticket in tickets
                     ]}</div>
@@ -282,13 +308,30 @@ def:pub WorkspaceShell(props: dict) -> any {
                     </div>
                 </div>)}
 
-                {activeTab == "handoff" and (<div className="rounded-2xl border border-border bg-panel p-4">
-                    <div className="text-xs uppercase tracking-[0.18em] text-muted">Handoff</div>
-                    <div className="mt-2 text-sm leading-6 text-foreground">{bundle.handoff.summary if bundle else ""}</div>
-                    <div className="mt-4 space-y-2">{[
-                        <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
-                        for item in (bundle.handoff.next_actions if bundle else [])
-                    ]}</div>
+                {activeTab == "handoff" and (<div className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-panel p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Handoff</div>
+                        <div className="mt-2 text-sm leading-6 text-foreground">{bundle.handoff.summary if bundle else ""}</div>
+                        <div className="mt-4 text-[10px] uppercase tracking-[0.18em] text-muted">Touched areas</div>
+                        <div className="mt-2 space-y-2">{[
+                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
+                            for item in (bundle.handoff.touched_areas if bundle else [])
+                        ]}</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-panel p-4">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Next actions</div>
+                        <div className="mt-2 space-y-2">{[
+                            <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
+                            for item in (bundle.handoff.next_actions if bundle else [])
+                        ]}</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-panel p-4">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-muted">Risks</div>
+                        <div className="mt-2 space-y-2">{[
+                            <div key={item} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-foreground">{item}</div>
+                            for item in (bundle.handoff.risks if bundle else [])
+                        ]}</div>
+                    </div>
                 </div>)}
 
                 {activeTab == "standup" and (<div className="rounded-2xl border border-border bg-panel p-4">
@@ -307,6 +350,13 @@ def:pub WorkspaceShell(props: dict) -> any {
                         <div className="mt-4 space-y-2">{[
                             <div key={item} className="rounded-xl border border-border bg-panel-soft px-3 py-2 text-sm text-foreground">{item}</div>
                             for item in (bundle.review.checklist if bundle else [])
+                        ]}</div>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-panel p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-muted">Risk hotspots</div>
+                        <div className="mt-3 space-y-2">{[
+                            <div key={item} className="rounded-xl border border-warning/30 bg-warning/10 px-3 py-3 text-sm text-foreground">{item}</div>
+                            for item in reviewHotspots[0:6]
                         ]}</div>
                     </div>
                     <div className="rounded-2xl border border-border bg-panel p-4">
