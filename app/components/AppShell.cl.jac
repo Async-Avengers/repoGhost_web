@@ -20,13 +20,41 @@ def:pub AppShell() -> JsxElement {
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3"><div className="text-xs uppercase tracking-[0.18em]">Mode</div><div className="mt-1 font-semibold text-foreground">{data["mode"]}</div></div>
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3"><div className="text-xs uppercase tracking-[0.18em]">Repo</div><div className="mt-1 font-semibold text-foreground">{data["repoPath"]}</div></div>
                     <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3"><div className="text-xs uppercase tracking-[0.18em]">Status</div><div className="mt-1 font-semibold text-foreground">{("Loading" if data["loading"] else "Ready")}</div></div>
-                    <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3"><div className="text-xs uppercase tracking-[0.18em]">Trace</div><div className="mt-1 font-semibold text-foreground">Visible</div></div>
+                    <div className="rounded-2xl border border-border bg-panel-soft px-4 py-3"><div className="text-xs uppercase tracking-[0.18em]">Trace</div><div className="mt-1 font-semibold text-foreground">{str(len(bundle.trace) if bundle else 0) + " steps"}</div></div>
                 </div>
             </div>
             {error and (<div className="mb-4"><ErrorBanner message={error} /></div>)}
             <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-                <WidgetShell bundle={bundle} mode={data["mode"]} modes={data["modes"]} setMode={data["setMode"]} toggleExpanded={data["toggleExpanded"]} />
-                <WorkspaceShell bundle={bundle} tabs={data["tabs"]} mode={data["mode"]} />
+                <WidgetShell
+                    bundle={bundle}
+                    mode={data["mode"]}
+                    modes={data["modes"]}
+                    quickPrompts={data["quickPrompts"]}
+                    draftPrompt={data["draftPrompt"]}
+                    loading={data["loading"]}
+                    expanded={data["expanded"]}
+                    setMode={data["setMode"]}
+                    setDraftPrompt={data["setDraftPrompt"]}
+                    applyQuickPrompt={data["applyQuickPrompt"]}
+                    submit={data["submit"]}
+                    toggleExpanded={data["toggleExpanded"]}
+                />
+                <WorkspaceShell
+                    bundle={bundle}
+                    tabs={data["tabs"]}
+                    mode={data["mode"]}
+                    activeTab={data["activeTab"]}
+                    chatThread={data["chatThread"]}
+                    repoPath={data["repoPath"]}
+                    meetingText={data["meetingText"]}
+                    draftPrompt={data["draftPrompt"]}
+                    loading={data["loading"]}
+                    setActiveTab={data["setActiveTab"]}
+                    setRepoPath={data["setRepoPath"]}
+                    setMeetingText={data["setMeetingText"]}
+                    setDraftPrompt={data["setDraftPrompt"]}
+                    submit={data["submit"]}
+                />
             </div>
         </div>
     </div>;
