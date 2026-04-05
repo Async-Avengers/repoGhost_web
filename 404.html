@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<!-- Color reference image: ../data/ref1.jpg (relative to this website/ directory) -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RepoGhost — Page Not Found</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:     #0d0d1a;
+      --bg-mid:      #12122a;
+      --bg-card:     #191932;
+      --accent:      #3b7ff5;
+      --purple:      #6a3de8;
+      --text:        #e8eaf6;
+      --text-muted:  #8b8db8;
+      --border:      #2a2a4a;
+      --glow-blue:   rgba(59,127,245,0.18);
+      --glow-purple: rgba(106,61,232,0.18);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg-deep);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2.5rem;
+      height: 60px;
+      background: rgba(13,13,26,0.82);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo span { color: var(--accent); }
+
+    .nav-link {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text); }
+
+    /* ── 404 HERO ── */
+    .error-page {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 6rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .error-page::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 55% 55% at 25% 50%, var(--glow-purple) 0%, transparent 70%),
+        radial-gradient(ellipse 45% 45% at 75% 50%, var(--glow-blue)   0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .error-eyebrow {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.5s ease forwards 0.1s;
+    }
+
+    .error-code {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(5rem, 18vw, 10rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, #e8eaf6 0%, #a0a8f0 45%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: fadeUp 0.6s ease forwards 0.22s;
+    }
+
+    .error-heading {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: var(--text-muted);
+      letter-spacing: 0.01em;
+      margin-bottom: 2.4rem;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.6s ease forwards 0.38s;
+    }
+
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.85rem 2rem;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: transform 0.18s, box-shadow 0.18s;
+      box-shadow: 0 4px 24px rgba(59,127,245,0.3);
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.6s ease forwards 0.54s;
+    }
+    .btn-home:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 36px rgba(59,127,245,0.48);
+    }
+    .btn-home svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 1.5rem 2.5rem;
+      background: var(--bg-deep);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .footer-logo span { color: var(--accent); }
+    .footer-copy { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HAMBURGER / MOBILE NAV ── */
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 4px;
+    }
+
+    .hamburger .bar {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #e8eaf6;
+      border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      transform-origin: center;
+    }
+
+    .hamburger.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open .bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-dropdown {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      background: rgba(13,13,26,0.97);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid transparent;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease, border-color 0.28s ease;
+    }
+
+    .nav-dropdown.open {
+      max-height: 300px;
+      border-bottom-color: #2a2a4a;
+    }
+
+    .nav-dropdown a {
+      display: block;
+      padding: 0.85rem 2.5rem;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      color: #8b8db8;
+      text-decoration: none;
+      border-bottom: 1px solid #2a2a4a;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-dropdown a:last-child { border-bottom: none; }
+    .nav-dropdown a:hover { color: #e8eaf6; background: rgba(59,127,245,0.06); }
+
+    @media (max-width: 767px) {
+      .nav-links { display: none; }
+      .hamburger  { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="index.html">Repo<span>Ghost</span></a>
+    <div class="nav-links">
+      <a class="nav-link" href="story.html">Story</a>
+      <a class="nav-link" href="team.html">Team</a>
+      <a class="nav-link" href="download.html">Download</a>
+    </div>
+    <button class="hamburger" id="nav-hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </nav>
+  <div class="nav-dropdown" id="nav-dropdown">
+    <a href="story.html">Story</a>
+    <a href="team.html">Team</a>
+    <a href="download.html">Download</a>
+  </div>
+
+  <!-- ── 404 ── -->
+  <div class="error-page">
+    <p class="error-eyebrow">Error</p>
+    <h1 class="error-code">404</h1>
+    <p class="error-heading">Page not found</p>
+    <a class="btn-home" href="index.html">
+      <svg viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 13V7H2M7 7L2 7M7 7l5 6M1 7l6-6 6 6"/>
+      </svg>
+      Back to home
+    </a>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <span class="footer-logo">Repo<span>Ghost</span></span>
+    <span class="footer-copy">Built by Async Avengers &mdash; Powered by Jac &amp; byllm</span>
+  </footer>
+
+  <script>
+    (function () {
+      var btn      = document.getElementById('nav-hamburger');
+      var dropdown = document.getElementById('nav-dropdown');
+      if (!btn || !dropdown) return;
+      btn.addEventListener('click', function () {
+        var open = btn.classList.toggle('open');
+        dropdown.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', String(open));
+      });
+      dropdown.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          btn.classList.remove('open');
+          dropdown.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      });
+    })();
+  </script>
+
+</body>
+</html>
