@@ -174,7 +174,8 @@
       border-radius: 50%;
       overflow: hidden;
       margin: 0 auto 1.3rem;
-      background: var(--bg-mid);
+      background: #1e1e3a;
+      border: 2px dashed #3b7ff5;
       position: relative;
       display: flex;
       align-items: center;
@@ -182,29 +183,25 @@
       flex-shrink: 0;
     }
 
+    /* Fallback SVG — always present, img covers it when loaded */
+    .member-photo-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* img sits on top; onerror hides it to reveal the fallback */
     .member-photo img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: center;
       display: block;
-      border-radius: 50%;
     }
-
-    /* Fallback state applied by onerror JS */
-    .member-photo.photo-error {
-      background: #1e1e3a;
-      border: 2px dashed #3b7ff5;
-    }
-
-    .member-photo-fallback {
-      display: none;
-      position: absolute;
-      inset: 0;
-      align-items: center;
-      justify-content: center;
-    }
-    .member-photo.photo-error .member-photo-fallback { display: flex; }
 
     /* ── CARD TEXT ── */
     .member-name {
@@ -363,17 +360,19 @@
       <!-- Joshua Randall -->
       <div class="team-card">
         <div class="member-photo">
-          <img
-            src="team/joshua.jpg"
-            alt="Joshua Randall"
-            onerror="this.style.display='none';this.parentElement.classList.add('photo-error');"
-          />
           <div class="member-photo-fallback" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b7ff5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4"/>
               <path d="M20 21a8 8 0 0 0-16 0"/>
             </svg>
           </div>
+          <img
+            src="../team/joshua.jpg"
+            alt="Joshua Randall"
+            width="120"
+            height="120"
+            onerror="this.style.display='none';"
+          />
         </div>
         <p class="member-name">Joshua Randall</p>
         <p class="member-bio">Bio coming soon.</p>
@@ -382,17 +381,19 @@
       <!-- Long Nguyen Thanh Le -->
       <div class="team-card">
         <div class="member-photo">
-          <img
-            src="team/long.jpg"
-            alt="Long Nguyen Thanh Le"
-            onerror="this.style.display='none';this.parentElement.classList.add('photo-error');"
-          />
           <div class="member-photo-fallback" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b7ff5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4"/>
               <path d="M20 21a8 8 0 0 0-16 0"/>
             </svg>
           </div>
+          <img
+            src="../team/long.jpg"
+            alt="Long Nguyen Thanh Le"
+            width="120"
+            height="120"
+            onerror="this.style.display='none';"
+          />
         </div>
         <p class="member-name">Long Nguyen Thanh Le</p>
         <p class="member-bio">Bio coming soon.</p>
@@ -401,17 +402,19 @@
       <!-- Nathan Rupard -->
       <div class="team-card">
         <div class="member-photo">
-          <img
-            src="team/nathan.jpg"
-            alt="Nathan Rupard"
-            onerror="this.style.display='none';this.parentElement.classList.add('photo-error');"
-          />
           <div class="member-photo-fallback" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b7ff5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4"/>
               <path d="M20 21a8 8 0 0 0-16 0"/>
             </svg>
           </div>
+          <img
+            src="../team/nathan.jpg"
+            alt="Nathan Rupard"
+            width="120"
+            height="120"
+            onerror="this.style.display='none';"
+          />
         </div>
         <p class="member-name">Nathan Rupard</p>
         <p class="member-bio">Bio coming soon.</p>
@@ -420,17 +423,19 @@
       <!-- Vasanth Anbukumar -->
       <div class="team-card">
         <div class="member-photo">
-          <img
-            src="team/vasanth.jpg"
-            alt="Vasanth Anbukumar"
-            onerror="this.style.display='none';this.parentElement.classList.add('photo-error');"
-          />
           <div class="member-photo-fallback" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3b7ff5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="8" r="4"/>
               <path d="M20 21a8 8 0 0 0-16 0"/>
             </svg>
           </div>
+          <img
+            src="../team/vasanth.jpg"
+            alt="Vasanth Anbukumar"
+            width="120"
+            height="120"
+            onerror="this.style.display='none';"
+          />
         </div>
         <p class="member-name">Vasanth Anbukumar</p>
         <p class="member-bio">Bio coming soon.</p>
