@@ -7,7 +7,7 @@
   <title>Download RepoGhost</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -25,12 +25,6 @@
       --glow-blue:   rgba(59,127,245,0.18);
       --glow-purple: rgba(106,61,232,0.18);
 
-      --mac-color:    #3b7ff5;
-      --mac-glow:     rgba(59,127,245,0.18);
-      --win-color:    #6a3de8;
-      --win-glow:     rgba(106,61,232,0.18);
-      --linux-color:  #00c896;
-      --linux-glow:   rgba(0,200,150,0.15);
     }
 
     html { scroll-behavior: smooth; }
@@ -139,149 +133,48 @@
 
     .page-desc strong { color: var(--text); font-weight: 500; }
 
-    /* detected OS badge */
-    .os-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-top: 1.4rem;
-      padding: 0.35rem 0.9rem;
-      background: rgba(59,127,245,0.1);
-      border: 1px solid rgba(59,127,245,0.3);
-      border-radius: 20px;
-      font-size: 0.78rem;
-      color: #80a8ff;
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      opacity: 0;
-      animation: fadeUp 0.5s ease forwards 0.55s;
-    }
-
-    /* ── DOWNLOAD GRID ── */
-    .download-section {
-      padding: 4rem 2rem;
+    /* ── DOCKER SECTION ── */
+    .docker-section {
+      padding: 4rem 2rem 5rem;
       background: var(--bg-deep);
     }
 
-    .os-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.4rem;
-      max-width: 980px;
+    .docker-inner {
+      max-width: 680px;
       margin: 0 auto;
     }
 
-    .os-card {
+    .docker-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 2rem 1.8rem;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.6rem;
-      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-      position: relative;
-      overflow: hidden;
+      padding: 2rem;
+      text-align: center;
     }
 
-    .os-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      border-radius: 12px 12px 0 0;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-    }
-
-    .os-card.mac::before   { background: var(--mac-color); }
-    .os-card.win::before   { background: var(--win-color); }
-    .os-card.linux::before { background: var(--linux-color); }
-
-    .os-card:hover { transform: translateY(-4px); }
-    .os-card.mac:hover   { box-shadow: 0 8px 32px var(--mac-glow);   border-color: var(--mac-color); }
-    .os-card.win:hover   { box-shadow: 0 8px 32px var(--win-glow);   border-color: var(--win-color); }
-    .os-card.linux:hover { box-shadow: 0 8px 32px var(--linux-glow); border-color: var(--linux-color); }
-
-    /* highlight ring for detected OS */
-    .os-card.detected {
-      border-width: 1.5px;
-    }
-    .os-card.detected.mac   { border-color: var(--mac-color);   box-shadow: 0 0 0 3px rgba(59,127,245,0.12),  0 6px 28px var(--mac-glow); }
-    .os-card.detected.win   { border-color: var(--win-color);   box-shadow: 0 0 0 3px rgba(106,61,232,0.12), 0 6px 28px var(--win-glow); }
-    .os-card.detected.linux { border-color: var(--linux-color); box-shadow: 0 0 0 3px rgba(0,200,150,0.12),  0 6px 28px var(--linux-glow); }
-    .os-card.detected::before { opacity: 1; }
-
-    .os-icon {
-      font-size: 2rem;
-      line-height: 1;
-      margin-bottom: 0.2rem;
-    }
-
-    .os-name {
+    .docker-title {
       font-family: 'Syne', sans-serif;
       font-weight: 800;
-      font-size: 1.2rem;
-      letter-spacing: -0.01em;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      font-size: 1.8rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 0.8rem;
     }
 
-    .detected-pill {
-      display: none;
-      font-size: 0.62rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 0.15rem 0.5rem;
-      border-radius: 10px;
-    }
-    .os-card.detected .detected-pill { display: inline-block; }
-    .mac   .detected-pill { background: rgba(59,127,245,0.15); color: #80a8ff; }
-    .win   .detected-pill { background: rgba(106,61,232,0.15); color: #b18af8; }
-    .linux .detected-pill { background: rgba(0,200,150,0.12); color: #00c896; }
-
-    .os-note {
-      font-size: 0.82rem;
+    .docker-desc {
+      font-size: 0.95rem;
       color: var(--text-muted);
-      line-height: 1.5;
-      flex: 1;
+      line-height: 1.65;
+      margin-bottom: 1.8rem;
     }
 
-    .btn-download {
-      margin-top: 0.8rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      width: 100%;
-      justify-content: center;
-      padding: 0.8rem 1.2rem;
-      border-radius: 7px;
-      font-family: 'Syne', sans-serif;
-      font-weight: 700;
-      font-size: 0.85rem;
-      letter-spacing: 0.04em;
-      text-decoration: none;
-      border: 1px solid transparent;
-      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+    .docker-note {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: var(--text-muted);
+      margin-top: 1rem;
     }
-    .btn-download svg { width: 14px; height: 14px; flex-shrink: 0; }
-
-    .os-card.mac   .btn-download { background: rgba(59,127,245,0.14);  border-color: rgba(59,127,245,0.4);  color: #80a8ff; }
-    .os-card.win   .btn-download { background: rgba(106,61,232,0.14); border-color: rgba(106,61,232,0.4); color: #b18af8; }
-    .os-card.linux .btn-download { background: rgba(0,200,150,0.1);  border-color: rgba(0,200,150,0.35); color: #00c896; }
-
-    .os-card.detected .btn-download {
-      color: #fff;
-    }
-    .os-card.detected.mac   .btn-download { background: var(--mac-color);   box-shadow: 0 4px 20px var(--mac-glow);   border-color: var(--mac-color); }
-    .os-card.detected.win   .btn-download { background: var(--win-color);   box-shadow: 0 4px 20px var(--win-glow);   border-color: var(--win-color); }
-    .os-card.detected.linux .btn-download { background: var(--linux-color); box-shadow: 0 4px 20px var(--linux-glow); border-color: var(--linux-color); }
-
-    .btn-download:hover { transform: translateY(-2px); }
 
     /* ── SOURCE SECTION ── */
     .source-section {
@@ -406,11 +299,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 640px) {
-      .os-grid { grid-template-columns: 1fr; }
-    }
-
     /* ── HAMBURGER / MOBILE NAV ── */
     .nav-links {
       display: flex;
@@ -515,70 +403,58 @@
       your IDE, connecting your meetings and repository into a live engineering
       context graph — no cloud required.
     </p>
-    <div class="os-badge" id="os-badge">
-      <span id="os-badge-icon">💻</span>
-      <span id="os-badge-text">Detecting your platform…</span>
-    </div>
   </div>
 
-  <!-- ── DOWNLOAD CARDS ── -->
-  <div class="download-section">
-    <div class="os-grid">
+  <!-- ── DOCKER ── -->
+  <div class="docker-section">
+    <div class="docker-inner">
+      <div class="docker-card">
+        <h2 class="docker-title">Get RepoGhost</h2>
+        <p class="docker-desc">Native desktop builds for macOS, Windows, and Linux are coming soon. In the meantime, run RepoGhost locally using Docker in under two minutes.</p>
 
-      <!-- macOS -->
-      <div class="os-card mac" id="card-mac">
-        <div class="os-icon">🍎</div>
-        <div class="os-name">
-          macOS
-          <span class="detected-pill">Detected</span>
+        <div class="code-block">
+          <div class="code-block-header">
+            <div class="code-dots">
+              <div class="code-dot"></div>
+              <div class="code-dot"></div>
+              <div class="code-dot"></div>
+            </div>
+            <span class="code-lang">docker</span>
+          </div>
+          <div class="code-body">
+            <div class="code-line">
+              <span class="line-num">1</span>
+              <span class="line-text">
+                <span class="token-cmd">docker</span>
+                <span> </span>
+                <span class="token-arg">pull</span>
+                <span> </span>
+                <span class="token-url">ghcr.io/Async-Avengers/repoghost:latest</span>
+              </span>
+            </div>
+            <div class="code-line">
+              <span class="line-num">2</span>
+              <span class="line-text">
+                <span class="token-cmd">docker</span>
+                <span> </span>
+                <span class="token-arg">run</span>
+                <span> </span>
+                <span class="token-flag">-p</span>
+                <span> </span>
+                <span class="token-arg">8000:8000</span>
+                <span> </span>
+                <span class="token-flag">-p</span>
+                <span> </span>
+                <span class="token-arg">8001:8001</span>
+                <span> </span>
+                <span class="token-arg">repoghost</span>
+              </span>
+            </div>
+          </div>
         </div>
-        <p class="os-note">
-          Supports macOS 12 Monterey and later. Universal binary for Apple Silicon and Intel. Drag to Applications to install.
-        </p>
-        <a class="btn-download" href="#">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 12h12"/>
-          </svg>
-          Download for macOS (.dmg)
-        </a>
-      </div>
 
-      <!-- Windows -->
-      <div class="os-card win" id="card-win">
-        <div class="os-icon">🪟</div>
-        <div class="os-name">
-          Windows
-          <span class="detected-pill">Detected</span>
-        </div>
-        <p class="os-note">
-          Supports Windows 10 and later (64-bit). Installer handles PATH setup automatically. Requires no admin privileges.
-        </p>
-        <a class="btn-download" href="#">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 12h12"/>
-          </svg>
-          Download for Windows (.exe)
-        </a>
+        <p class="docker-note">Requires Docker installed. Once running, open http://localhost:8001 in your browser.</p>
       </div>
-
-      <!-- Linux -->
-      <div class="os-card linux" id="card-linux">
-        <div class="os-icon">🐧</div>
-        <div class="os-name">
-          Linux
-          <span class="detected-pill">Detected</span>
-        </div>
-        <p class="os-note">
-          AppImage runs on any modern distro — Ubuntu 20.04+, Fedora 36+, Arch. Make it executable and run. No install needed.
-        </p>
-        <a class="btn-download" href="#">
-          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M7 1v8M3 6l4 4 4-4"/><path d="M1 12h12"/>
-          </svg>
-          Download for Linux (.AppImage)
-        </a>
-      </div>
-
     </div>
   </div>
 
@@ -636,61 +512,6 @@
     <span class="footer-logo">Repo<span>Ghost</span></span>
     <span class="footer-copy">Built by Async Avengers &mdash; Powered by Jac &amp; byllm</span>
   </footer>
-
-  <script>
-    (function () {
-      const platform = (navigator.platform || '').toLowerCase();
-      const ua       = (navigator.userAgent || '').toLowerCase();
-
-      let detectedOS = null;
-
-      if (platform.includes('mac') || ua.includes('macintosh') || ua.includes('mac os')) {
-        detectedOS = 'mac';
-      } else if (platform.includes('win') || ua.includes('windows')) {
-        detectedOS = 'win';
-      } else if (
-        platform.includes('linux') ||
-        ua.includes('linux') ||
-        ua.includes('ubuntu') ||
-        ua.includes('android') // treat Android as Linux for desktop guidance
-      ) {
-        detectedOS = 'linux';
-      }
-
-      const badgeIcon = document.getElementById('os-badge-icon');
-      const badgeText = document.getElementById('os-badge-text');
-      const badge     = document.getElementById('os-badge');
-
-      const labels = { mac: 'macOS detected', win: 'Windows detected', linux: 'Linux detected' };
-      const icons  = { mac: '🍎', win: '🪟', linux: '🐧' };
-      const colors = {
-        mac:   { bg: 'rgba(59,127,245,0.1)',   border: 'rgba(59,127,245,0.3)',   text: '#80a8ff' },
-        win:   { bg: 'rgba(106,61,232,0.12)',  border: 'rgba(106,61,232,0.35)',  text: '#b18af8' },
-        linux: { bg: 'rgba(0,200,150,0.08)',   border: 'rgba(0,200,150,0.3)',    text: '#00c896' },
-      };
-
-      if (detectedOS) {
-        badgeIcon.textContent = icons[detectedOS];
-        badgeText.textContent = labels[detectedOS];
-
-        const c = colors[detectedOS];
-        badge.style.background   = c.bg;
-        badge.style.borderColor  = c.border;
-        badge.style.color        = c.text;
-
-        const card = document.getElementById('card-' + detectedOS);
-        if (card) {
-          card.classList.add('detected');
-          // Smoothly scroll the card into view after a short delay
-          setTimeout(function () {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }, 700);
-        }
-      } else {
-        badgeText.textContent = 'Select your platform below';
-      }
-    })();
-  </script>
 
   <script>
     (function () {
