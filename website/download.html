@@ -410,6 +410,77 @@
     @media (max-width: 640px) {
       .os-grid { grid-template-columns: 1fr; }
     }
+
+    /* ── HAMBURGER / MOBILE NAV ── */
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 4px;
+    }
+
+    .hamburger .bar {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: #e8eaf6;
+      border-radius: 2px;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      transform-origin: center;
+    }
+
+    .hamburger.open .bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open .bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open .bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-dropdown {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      z-index: 99;
+      background: rgba(13,13,26,0.97);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid transparent;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.28s ease, border-color 0.28s ease;
+    }
+
+    .nav-dropdown.open {
+      max-height: 300px;
+      border-bottom-color: #2a2a4a;
+    }
+
+    .nav-dropdown a {
+      display: block;
+      padding: 0.85rem 2.5rem;
+      font-size: 0.9rem;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      color: #8b8db8;
+      text-decoration: none;
+      border-bottom: 1px solid #2a2a4a;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-dropdown a:last-child { border-bottom: none; }
+    .nav-dropdown a:hover { color: #e8eaf6; background: rgba(59,127,245,0.06); }
+    .nav-dropdown a.active { color: #e8eaf6; }
+
+    @media (max-width: 767px) {
+      .nav-links { display: none; }
+      .hamburger  { display: flex; }
+    }
   </style>
 </head>
 <body>
@@ -417,11 +488,20 @@
   <!-- NAV -->
   <nav>
     <a class="nav-logo" href="index.html">Repo<span>Ghost</span></a>
-    <div style="display:flex;gap:1.5rem;align-items:center;">
+    <div class="nav-links">
       <a class="nav-link" href="story.html">Story</a>
       <a class="nav-link" href="download.html" style="color:var(--text);">Download</a>
     </div>
+    <button class="hamburger" id="nav-hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
   </nav>
+  <div class="nav-dropdown" id="nav-dropdown">
+    <a href="story.html">Story</a>
+    <a href="download.html" class="active">Download</a>
+  </div>
 
   <!-- ── HEADER ── -->
   <div class="page-header">
@@ -607,6 +687,26 @@
       } else {
         badgeText.textContent = 'Select your platform below';
       }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var btn      = document.getElementById('nav-hamburger');
+      var dropdown = document.getElementById('nav-dropdown');
+      if (!btn || !dropdown) return;
+      btn.addEventListener('click', function () {
+        var open = btn.classList.toggle('open');
+        dropdown.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', String(open));
+      });
+      dropdown.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', function () {
+          btn.classList.remove('open');
+          dropdown.classList.remove('open');
+          btn.setAttribute('aria-expanded', 'false');
+        });
+      });
     })();
   </script>
 
